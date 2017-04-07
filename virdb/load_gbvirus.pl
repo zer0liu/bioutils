@@ -64,7 +64,7 @@ use strict;
 use warnings;
 
 use Bio::SeqIO;
-use Data::Dumper;
+# use Data::Dumper;
 use DBI;
 use Getopt::Long;
 use Smart::Comments;
@@ -420,8 +420,8 @@ sub usage {
     my $ver = "VERSION 2.10\t2009-6-26\n";
 
     warn << "EOS";
-imp_bacseq.pl $ver
-Import GenBank format virusl seq into database.\n
+load_gbvirus.pl $ver
+Import GenBank format virus seq into database.\n
 Usage: load_gbvirus.pl -i <infile> [-c <ins|upd|del>] [-d <file>]
   -i <infile>: Input file, GenBank format sequence file,
   -c <cmd>:    Operate command, ins|upd|del
