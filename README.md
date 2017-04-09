@@ -52,7 +52,7 @@ A GTK2 interface to query SQLite3/PostgreSQL database.
 
 Parse and load NCBI taxonomy into a local SQLite3 database.
 
-**Note:** NCBI taxonomy in available at [[NCBI ftp](https://ftp.ncbi.nlm.nih.gov/pub/taxonomy/)
+**Note:** NCBI taxonomy in available at [NCBI ftp](https://ftp.ncbi.nlm.nih.gov/pub/taxonomy/)
 
 ## virdb
 
