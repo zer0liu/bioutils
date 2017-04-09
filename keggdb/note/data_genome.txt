@@ -1,0 +1,32 @@
+######################################################################
+#
+#                   Data structure for genome
+#
+######################################################################
+
+    $rh_rec = {
+        'id'          => $id,
+        'name'        => $name,
+        'definit'     => $definition,
+        'annotation'  => $annotation,
+        'taxid'       => $taxid,
+        'tax_lineage' => $tax_lineage,
+        'data_src'    => $data_src,
+        'origin_db'   => $origin_db,
+        'disease'     => [ $disease_id, ... ],
+        'comment'     => $comment,
+        'component'   => [
+            {
+                'category'    => $category, # 'chromasome' or 'plasmid'
+                'is_circular' => $is_cir,   # 0 or 1
+                'name'        => $name,
+                'refseq'      => $refseq_id,
+                'length'      => $length,
+            },
+            ...
+        ],
+        'nt'          => $nt_number,
+        'prn'         => $protein_number,
+        'rna'         => $rna_number,
+        'pmid'        => [ $pmid, ... ],
+    }

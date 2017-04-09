@@ -1,0 +1,37 @@
+######################################################################
+#
+#                   Data structure for ko
+#
+######################################################################
+
+    $rh_rec = {
+        'id'      => $id,
+        'name'    => $name,
+        'definit' => $definition,
+        'ec'      => [ $ec, ... ],
+        'pathway' => [ $pathway_id, ... ],
+        'module'  => [ $module_id, ... ],
+        'class'   => [ $class, ... ],
+        'dblink'  => [
+            {
+                'db'   => $db,
+                'link' => [ $link_id, ... ],
+            },
+            ...
+        ],
+        'gene'    => [
+            {
+                'org'  => $org,
+                'org_gene' => [
+                    {
+                        entry => $entry,
+                        name  => $name,
+                    },
+                    ...
+                ],
+                ...
+            },
+            ...
+        ],
+        'pmid'    => [ $pmid, ... ],
+    }

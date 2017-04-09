@@ -1,0 +1,37 @@
+    $rh_rec = {
+        'id'        => $id,                     # ENTRY
+        'type'      => $type,                   # e.g., 'CDS'
+        'name'      => [ $name, ... ],          # NAME
+        'definit'   => $defin,                  # DEFINITION
+        'ko'        => [ $ko_id, ... ]          # ORTHOLOGY		check
+        'ec'        => [ $ec, ... ],            # EC,           dismissed
+        'pathway'   => [ $pathway_id, ... ],    # PATHWAY,      check
+        'class;     => [ $class, ... ],         
+        'position'  => $position,               # POSITION,
+        'motif'     => [                        # MOTIF
+            {
+                'db'    => $db,
+                'entry' => [ $entry, ... ],
+            },
+            ...
+        ],
+        'dblink'   => [                         # DBLINKS
+            {
+                'db'    => $db,
+                'entry' => [ $entry, ... ],
+            },
+            ...
+        ],
+        'structure' => {                        # STRUCTURE
+            'db'    => $db,
+            'entry' => [ $entry, ...],
+        },
+        'aaseq'     => {                        # AASEQ
+            'length'    => $length,
+            'seq'       => $seq,
+        },
+        'ntseq'     => {                        # NTSEQ
+            'length'    => $length,
+            'seq'       => $seq,
+        },
+    }

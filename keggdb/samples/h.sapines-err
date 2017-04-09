@@ -1,0 +1,29 @@
+ENTRY       84326             CDS       H.sapiens
+NAME        C16orf13, MGC13114
+DEFINITION  chromosome 16 open reading frame 13
+POSITION    16p13.3
+MOTIF       Pfam: DUF938 MTS PCMT Methyltransf_12 Methyltransf_4
+DBLINKS     NCBI-GI: 93102391
+            NCBI-GeneID: 84326
+            HGNC: 14141
+            HPRD: 17482
+            Ensembl: ENSG00000248465 ENSG00000249124 ENSG00000249450
+                     ENSG00000250171 ENSG00000250724
+AASEQ       205
+            MLVAAAAERNKDPILHVLRQYLDPAQRGVRVLEVASGSGQHAAHFARAFPLAEWQPSDVD
+            QRCLDSIAATTQAQGLTNVKAPLHLDVTWGWEHWGGILPQSLDLLLCINMAHVSPLRCTE
+            GLFRAAGHLLKPRALLITYGEPRMGASGHSPPGGPGKGQWPAPGEDGGHASQQQMPDLPE
+            KLSPSFTPAHLHPCRRLCEARTLPP
+NTSEQ       618
+            atgctggtggcggcggccgcggagcggaacaaggatcccatcttgcacgtgctgcggcag
+            tacctggatccggcccagcgtggcgtccgcgtcctcgaggtggcctcgggctccggccag
+            cacgcagcgcacttcgcgcgggccttccccctggccgagtggcagccgtcggacgtggac
+            cagcgctgcctggacagcatcgcggccaccacgcaagcccagggcctgaccaacgtgaag
+            gccccgctacacctggacgtgacgtggggctgggagcactggggcgggatcctgccacag
+            tcgctggacctgttgctctgcatcaacatggcccatgtcagccccctgcgctgcacggag
+            gggctcttcagagcagcaggacacctgctcaaacccagggccctgctcatcacctacggg
+            gaacccagaatgggggcttcgggacacagccctcctggaggacctgggaaaggccagtgg
+            cctgctcctggagaggatggtggacatgccagccaacaacaaatgcctgatcttccggaa
+            aaactaagcccctccttcacccccgcacacctgcatccctgccggaggctctgtgaggca
+            cgaaccctgcctccctag
+///

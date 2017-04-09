@@ -1,0 +1,67 @@
+Species	Genus	Family	Order	Class	Phylum	Kingdom	Superkingdom
+Methanothermobacter thermautotrophicus	Methanothermobacter	Methanobacteriaceae	Methanobacteriales	Methanobacteria	Euryarchaeota	-	Archaea
+Methanocaldococcus jannaschii	Methanocaldococcus	Methanocaldococcaceae	Methanococcales	Methanococci	Euryarchaeota	-	Archaea
+Methanosarcina acetivorans	Methanosarcina	Methanosarcinaceae	Methanosarcinales	Methanomicrobia	Euryarchaeota	-	Archaea
+Halobacterium salinarum	Halobacterium	Halobacteriaceae	Halobacteriales	Halobacteria	Euryarchaeota	-	Archaea
+Thermoplasma acidophilum	Thermoplasma	Thermoplasmataceae	Thermoplasmatales	Thermoplasmata	Euryarchaeota	-	Archaea
+Thermoplasma volcanium	Thermoplasma	Thermoplasmataceae	Thermoplasmatales	Thermoplasmata	Euryarchaeota	-	Archaea
+Pyrococcus horikoshii	Pyrococcus	Thermococcaceae	Thermococcales	Thermococci	Euryarchaeota	-	Archaea
+Pyrococcus abyssi	Pyrococcus	Thermococcaceae	Thermococcales	Thermococci	Euryarchaeota	-	Archaea
+Archaeoglobus fulgidus	Archaeoglobus	Archaeoglobaceae	Archaeoglobales	Archaeoglobi	Euryarchaeota	-	Archaea
+Methanopyrus kandleri	Methanopyrus	Methanopyraceae	Methanopyrales	Methanopyri	Euryarchaeota	-	Archaea
+Pyrobaculum aerophilum	Pyrobaculum	Thermoproteaceae	Thermoproteales	Thermoprotei	Crenarchaeota	-	Archaea
+Sulfolobus solfataricus	Sulfolobus	Sulfolobaceae	Sulfolobales	Thermoprotei	Crenarchaeota	-	Archaea
+Aeropyrum pernix	Aeropyrum	Desulfurococcaceae	Desulfurococcales	Thermoprotei	Crenarchaeota	-	Archaea
+Saccharomyces cerevisiae	Saccharomyces	Saccharomycetaceae	Saccharomycetales	Saccharomycetes	Ascomycota	Fungi	Eukaryota
+Schizosaccharomyces pombe	Schizosaccharomyces	Schizosaccharomycetaceae	Schizosaccharomycetales	Schizosaccharomycetes	Ascomycota	Fungi	Eukaryota
+-	-	-	-	-	-	-	-
+Aquifex aeolicus	Aquifex	Aquificaceae	Aquificales	Aquificae (class)	Aquificae	-	Bacteria
+Thermotoga maritima	Thermotoga	Thermotogaceae	Thermotogales	Thermotogae (class)	Thermotogae	-	Bacteria
+-	Synechocystis	-	Chroococcales	-	Cyanobacteria	-	Bacteria
+Nostoc sp. PCC 7120	Nostoc	Nostocaceae	Nostocales	-	Cyanobacteria	-	Bacteria
+Fusobacterium nucleatum	Fusobacterium	Fusobacteriaceae	Fusobacteriales	Fusobacteria (class)	Fusobacteria	-	Bacteria
+Deinococcus radiodurans	Deinococcus	Deinococcaceae	Deinococcales	Deinococci	Deinococcus-Thermus	-	Bacteria
+Chlamydia trachomatis	Chlamydia	Chlamydiaceae	Chlamydiales	Chlamydiae (class)	Chlamydiae	-	Bacteria
+Chlamydophila pneumoniae	Chlamydophila	Chlamydiaceae	Chlamydiales	Chlamydiae (class)	Chlamydiae	-	Bacteria
+Treponema pallidum	Treponema	Spirochaetaceae	Spirochaetales	Spirochaetes (class)	Spirochaetes	-	Bacteria
+Borrelia burgdorferi	Borrelia	Spirochaetaceae	Spirochaetales	Spirochaetes (class)	Spirochaetes	-	Bacteria
+Corynebacterium glutamicum	Corynebacterium	Corynebacteriaceae	Actinomycetales	Actinobacteria (class)	Actinobacteria	-	Bacteria
+Mycobacterium tuberculosis	Mycobacterium	Mycobacteriaceae	Actinomycetales	Actinobacteria (class)	Actinobacteria	-	Bacteria
+Mycobacterium tuberculosis	Mycobacterium	Mycobacteriaceae	Actinomycetales	Actinobacteria (class)	Actinobacteria	-	Bacteria
+Mycobacterium leprae	Mycobacterium	Mycobacteriaceae	Actinomycetales	Actinobacteria (class)	Actinobacteria	-	Bacteria
+Clostridium acetobutylicum	Clostridium	Clostridiaceae	Clostridiales	Clostridia	Firmicutes	-	Bacteria
+Lactococcus lactis	Lactococcus	Streptococcaceae	Lactobacillales	Bacilli	Firmicutes	-	Bacteria
+Streptococcus pyogenes	Streptococcus	Streptococcaceae	Lactobacillales	Bacilli	Firmicutes	-	Bacteria
+Streptococcus pneumoniae	Streptococcus	Streptococcaceae	Lactobacillales	Bacilli	Firmicutes	-	Bacteria
+-	-	-	-	-	-	-	-
+Listeria innocua	Listeria	Listeriaceae	Bacillales	Bacilli	Firmicutes	-	Bacteria
+Bacillus subtilis	Bacillus	Bacillaceae	Bacillales	Bacilli	Firmicutes	-	Bacteria
+Bacillus halodurans	Bacillus	Bacillaceae	Bacillales	Bacilli	Firmicutes	-	Bacteria
+Ureaplasma urealyticum	Ureaplasma	Mycoplasmataceae	Mycoplasmatales	Mollicutes	Tenericutes	-	Bacteria
+Mycoplasma pulmonis	Mycoplasma	Mycoplasmataceae	Mycoplasmatales	Mollicutes	Tenericutes	-	Bacteria
+Mycoplasma pneumoniae	Mycoplasma	Mycoplasmataceae	Mycoplasmatales	Mollicutes	Tenericutes	-	Bacteria
+Mycoplasma genitalium	Mycoplasma	Mycoplasmataceae	Mycoplasmatales	Mollicutes	Tenericutes	-	Bacteria
+Escherichia coli	Escherichia	Enterobacteriaceae	Enterobacteriales	Gammaproteobacteria	Proteobacteria	-	Bacteria
+Escherichia coli	Escherichia	Enterobacteriaceae	Enterobacteriales	Gammaproteobacteria	Proteobacteria	-	Bacteria
+Escherichia coli	Escherichia	Enterobacteriaceae	Enterobacteriales	Gammaproteobacteria	Proteobacteria	-	Bacteria
+Yersinia pestis	Yersinia	Enterobacteriaceae	Enterobacteriales	Gammaproteobacteria	Proteobacteria	-	Bacteria
+Salmonella typhimurium	Salmonella	Enterobacteriaceae	Enterobacteriales	Gammaproteobacteria	Proteobacteria	-	Bacteria
+Buchnera aphidicola	Buchnera	Enterobacteriaceae	Enterobacteriales	Gammaproteobacteria	Proteobacteria	-	Bacteria
+Vibrio cholerae	Vibrio	Vibrionaceae	Vibrionales	Gammaproteobacteria	Proteobacteria	-	Bacteria
+Pseudomonas aeruginosa	Pseudomonas	Pseudomonadaceae	Pseudomonadales	Gammaproteobacteria	Proteobacteria	-	Bacteria
+Haemophilus influenzae	Haemophilus	Pasteurellaceae	Pasteurellales	Gammaproteobacteria	Proteobacteria	-	Bacteria
+Pasteurella multocida	Pasteurella	Pasteurellaceae	Pasteurellales	Gammaproteobacteria	Proteobacteria	-	Bacteria
+Xylella fastidiosa	Xylella	Xanthomonadaceae	Xanthomonadales	Gammaproteobacteria	Proteobacteria	-	Bacteria
+Neisseria meningitidis	Neisseria	Neisseriaceae	Neisseriales	Betaproteobacteria	Proteobacteria	-	Bacteria
+Neisseria meningitidis	Neisseria	Neisseriaceae	Neisseriales	Betaproteobacteria	Proteobacteria	-	Bacteria
+Ralstonia solanacearum	Ralstonia	Burkholderiaceae	Burkholderiales	Betaproteobacteria	Proteobacteria	-	Bacteria
+Helicobacter pylori	Helicobacter	Helicobacteraceae	Campylobacterales	Epsilonproteobacteria	Proteobacteria	-	Bacteria
+Helicobacter pylori	Helicobacter	Helicobacteraceae	Campylobacterales	Epsilonproteobacteria	Proteobacteria	-	Bacteria
+Campylobacter jejuni	Campylobacter	Campylobacteraceae	Campylobacterales	Epsilonproteobacteria	Proteobacteria	-	Bacteria
+-	-	-	-	-	-	-	-
+Sinorhizobium meliloti	Sinorhizobium	Rhizobiaceae	Rhizobiales	Alphaproteobacteria	Proteobacteria	-	Bacteria
+Brucella melitensis	Brucella	Brucellaceae	Rhizobiales	Alphaproteobacteria	Proteobacteria	-	Bacteria
+Mesorhizobium loti	Mesorhizobium	Phyllobacteriaceae	Rhizobiales	Alphaproteobacteria	Proteobacteria	-	Bacteria
+Caulobacter vibrioides	Caulobacter	Caulobacteraceae	Caulobacterales	Alphaproteobacteria	Proteobacteria	-	Bacteria
+Rickettsia prowazekii	Rickettsia	Rickettsiaceae	Rickettsiales	Alphaproteobacteria	Proteobacteria	-	Bacteria
+Rickettsia conorii	Rickettsia	Rickettsiaceae	Rickettsiales	Alphaproteobacteria	Proteobacteria	-	Bacteria

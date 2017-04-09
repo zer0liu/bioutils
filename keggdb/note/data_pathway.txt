@@ -1,0 +1,38 @@
+######################################################################
+#
+#                   Data structure for pathway
+#
+######################################################################
+
+    $rh_rec = {
+        'id'          => $id,
+        'name'        => $name,
+        'definit'     => $definition,
+        'class'       => [ $class, ... ],
+        'map'         => $map,
+        'module'      => [ $module_id, ... ],
+        'disease'     => [ $disease_id, ... ],
+        'organism'    => $organism,
+        'abbr_org'    => $abbr_org,
+        'dblink'      => [
+            {
+                'db'    => $db,
+                'link' => [ $link, ... ],
+            },
+            ...
+        ],
+        'gene'        => [
+            {
+                'entry' => $name,
+                'name'  => [ $alt_name, ... ],
+                'ko'    => [ $ko, ... ],
+                'ec'    => [ $ec, ... ],
+            },
+            ...
+        ],
+        'orthology'   => [ $orth_id, ... ],
+        'compound'    => [ $compound_id, ... ],
+        'pmid'        => [ $pmid, ...],
+        'rel_pathway' => [ $rel_pathway_id, ... ],
+        'ko_pathway'  => $ko_pathway,
+    }

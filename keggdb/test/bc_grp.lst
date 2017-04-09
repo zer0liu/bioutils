@@ -1,0 +1,28 @@
+# The Bacillus cereus group comprises six members: 
+# * Bacillus anthracis, 
+# * Bacillus cereus, 
+# * Bacillus mycoides, 
+# * Bacillus pseudomycoides, 
+# * Bacillus thuringiensis,
+# * Bacillus weihenstephanensis.
+
+bai	b.anthracis_a0248	Bacillus anthracis A0248
+ban	b.anthracis	Bacillus anthracis Ames
+bar	b.anthracis_ames0581	Bacillus anthracis Ames 0581 (Ames Ancestor)
+bah	b.anthracis_cdc684 	Bacillus anthracis CDC 684
+bal	b.anthracis_ci 	Bacillus anthracis CI
+bat	b.anthracis_sterne	Bacillus anthracis Sterne
+bcx	b.cereus_03bb102 	Bacillus cereus 03BB102
+bcr	b.cereus_ah187 	Bacillus cereus AH187
+bcu	b.cereus_ah820 	Bacillus cereus AH820
+bca	b.cereus_atcc10987 	Bacillus cereus ATCC 10987
+bce	b.cereus	Bacillus cereus ATCC 14579
+bcb	b.cereus_b4264	Bacillus cereus B4264
+bcz	b.cereus_zk 	Bacillus cereus E33L (zebra killer)
+bcg	b.cereus_g9842 	Bacillus cereus G9842
+bcq	b.cereus_q1	Bacillus cereus Q1
+bcy	b.cereus_nvh	Bacillus cereus subsp. cytotoxis NVH 391-98
+btk	b.thuringiensis	Bacillus thuringiensis 97-27 (serovar konkukian)
+btl	b.thuringiensis_alhakam	Bacillus thuringiensis Al Hakam
+btb	b.thuringiensis_bmb171	Bacillus thuringiensis BMB171
+bwe	b.weihenstephanensis	Bacillus weihenstephanensis KBAB4
