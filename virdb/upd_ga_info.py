@@ -86,8 +86,12 @@ else:
     pass
     
 # A dictionary for segment
-segments    = {'PB2' : '1', 'PB1' : '2', 'PA' : '3', 'HA' : '4', \
-                'NP' : '5', 'NA' : '6', 'MP' : '7', 'NS' : '8'}
+# segments    = {'PB2' : '1', 'PB1' : '2', 'PA' : '3', 'HA' : '4', \
+#                 'NP' : '5', 'NA' : '6', 'MP' : '7', 'NS' : '8'}
+
+segments    = {'PB2' : 'PB2', 'PB1' : 'PB1', 'PA' : 'PA', \
+               'HA' : 'HA', 'NP' : 'NP', 'NA' : 'NA', \
+               'MP' : 'MP', 'NS' : 'NS'}
 
 # A counter for number of correcty updated records
 iso_counter = 0

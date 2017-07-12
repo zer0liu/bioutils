@@ -73,6 +73,7 @@ AUTHOR
 VERSION
     
     0.0.1   2017-06-27
+    0.0.2   2017-07-12  Bug fix
 
 '''
 
@@ -97,7 +98,9 @@ args        = argParser.parse_args()
 
 # Check whether input file provided
 if not args.fin:
-    sys.exit('[ERROR] No INPIT .gbf filename!\n')
+    print('[ERROR] No INPUT .gbf filename!\n')
+    argParser.print_help()
+    sys.exit()
 
 # Generate output filename, if necessary
 if not args.fout:

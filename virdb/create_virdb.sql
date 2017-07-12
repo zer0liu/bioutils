@@ -34,6 +34,8 @@
 --                      Create indices for all tables.
 -- 3.00     2011-10-21  A SQLite version.
 -- 3.01     2013-09-22  Fix bug
+-- 3.02     2017-07-04  Remove 'CHECK (vir_id >=0 )' for 'taxon_id'in 
+--                      Table 'virus'. Now the default 'taxon_id' is 0.
 -- }}} Comments
 
 -- {{{ Tables
@@ -71,7 +73,8 @@ CREATE  TABLE virus (
     tissue_type TEXT NOT NULL DEFAULT '',
     map TEXT NOT NULL DEFAULT '',
     note TEXT NOT NULL DEFAULT '',
-    taxon_id INTEGER NOT NULL DEFAULT 0 CHECK (taxon_id > 0),		-- Xref NCBI Taxonomy id
+--    taxon_id INTEGER NOT NULL DEFAULT 0 CHECK (taxon_id > 0),		-- Xref NCBI Taxonomy id
+    taxon_id INTEGER NOT NULL DEFAULT 0, 
     collected_by TEXT NOT NULL DEFAULT ''
 );
 
