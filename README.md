@@ -58,3 +58,12 @@ Parse and load NCBI taxonomy into a local SQLite3 database.
 ## virdb
 
 Parse GenBank format viral genome file (usually downloaded from GenBank) and load into an SQLite3 database.
+
+@2017-07-04: Added new scripts, fmt_gbf.py and upd_ga_info.py, to load GISAID sequences into the database.
+The work flow is:
+1. Download nucleotide sequences from GISAID in FASTA formata. Keep the sequence header format is "DNA Accession no. | Isolate name | Type | Collection date".
+2. Anntate GISAID nucleotide sequences by [NCBI Influenza Virus Sequence Annotation Tool](https://www.ncbi.nlm.nih.gov/genomes/FLU/Database/annotation.cgi). Download the reports, in '.gbf' format.
+3. Run script, fmt_gbf.py, to format the '.gbf' file into '.gbk' file.
+4. Load re-formatted '.gbk' file into target database.
+5. Load GISAID strain information (in a '.csv' file) into the database by script 'upd_ga_info.py'.
+
