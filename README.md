@@ -55,6 +55,12 @@ Parse and load NCBI taxonomy into a local SQLite3 database.
 
 **Note:** NCBI taxonomy in available at [NCBI ftp](https://ftp.ncbi.nlm.nih.gov/pub/taxonomy/)
 
+## tree
+
+Operation on phylogenetic trees.
+
+* reduce_trees.pl   Reduce the trees number of a BEAST analysis result.
+
 ## virdb
 
 Parse GenBank format viral genome file (usually downloaded from GenBank) and load into an SQLite3 database.
