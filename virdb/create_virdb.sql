@@ -27,8 +27,9 @@
 --                      table 'reference'.
 -- 2.00     2009-06-11  PostgreSQL script inherited from formal MySQL 
 --                      script 
--- 2.10     2009-09-04  New fields 'segment' and 'pcr_primers' in table
---                      'sequence'.
+-- 2.10     2009-09-04  New fields in table 'sequence'.
+--                          segment     - For segmented viruses
+--                          pcr_primers - PCR primers, if available
 --                      Modify 'pg_start' and 'pg_end' fields of table
 --                      reference from 'INTEGER' to 'TEXT'.
 --                      Create indices for all tables.
@@ -36,6 +37,11 @@
 -- 3.01     2013-09-22  Fix bug
 -- 3.02     2017-07-04  Remove 'CHECK (vir_id >=0 )' for 'taxon_id'in 
 --                      Table 'virus'. Now the default 'taxon_id' is 0.
+-- 3.03     2018-030-12 New fields in table 'sequence':
+--                          mod_date    - Date of lase modification
+--                          version     - i.e., accession.version
+--                      Rename fileds in table 'feature':
+--                          locus to locus_tag
 -- }}} Comments
 
 -- {{{ Tables
@@ -100,7 +106,9 @@ CREATE   TABLE sequence (
     comment TEXT NOT NULL DEFAULT '',   -- COMMENT
     seq TEXT NOT NULL DEFAULT '',
     segment TEXT NOT NULL DEFAULT '',
-    pcr_primers TEXT NOT NULL DEFAULT ''
+    pcr_primers TEXT NOT NULL DEFAULT '',
+    mod_date TEXT NOT NULL DEFAULT '0001-01-01',  -- Seq modification date
+    version TEXT NOT NULL DEFAULT ''
 );
 
 -- }}} sequence
@@ -136,7 +144,7 @@ CREATE   TABLE feature (
     feat_end INTEGER NOT NULL DEFAULT 0,
     strand CHAR NOT NULL DEFAULT '.',        -- '+', '-' or '.'
     gene TEXT NOT NULL DEFAULT '',      -- '/gene'
-    locus TEXT NOT NULL DEFAULT '',     -- '/locus_tag'
+    locus_tag TEXT NOT NULL DEFAULT '',     -- '/locus_tag'
     seq TEXT NOT NULL DEFAULT '',
     ec_num TEXT NOT NULL DEFAULT '',     -- '/EC_number'. 
     func TEXT NOT NULL DEFAULT '', -- '/function'
@@ -229,7 +237,7 @@ CREATE INDEX idx_feat_ec_num ON feature (ec_num);
 CREATE INDEX idx_feat_ftyle ON feature (ftype);
 CREATE INDEX idx_feat_function ON feature (func);
 CREATE INDEX idx_feat_gene ON feature (gene);
-CREATE INDEX idx_feat_locus ON feature (locus);
+CREATE INDEX idx_feat_locus_tag ON feature (locus_tag);
 CREATE INDEX idx_feat_prnid ON feature (prn_id);
 CREATE INDEX idx_feat_product ON feature (product);
 CREATE INDEX idx_feat_end ON feature (feat_end);
@@ -267,6 +275,8 @@ CREATE INDEX idx_seq__end ON sequence (seq_end);
 CREATE INDEX idx_seq__start ON sequence (seq_start);
 CREATE INDEX idx_seq_vid ON sequence (vir_id);
 CREATE INDEX idx_seq_seg ON sequence (segment);
+CREATE INDEX idx_seq_mod_date ON sequence (mod_date);
+CREATE INDEX idx_seq_version ON sequence (version);
 
 -- Indices for Table virus
 

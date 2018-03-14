@@ -388,7 +388,7 @@ exit 0;
 # parse_location - Parse reference location information, fetch date,
 #                  pages, journal, etc.
 # chkRefPmid - Check the existance of a PUBMED id (pmid).
-# chgGBDate - Convert GenBank format date to MySQL format.
+# chgGBDate - Convert GenBank format date to 'yyyy-mm-dd' format.
 # insTableVir - Insert records into table 'virus'.
 # chkVirId - Check whether organism already exists. (dismissed)
 # insTableSeq - Insert records into table 'seq'.
@@ -1319,7 +1319,7 @@ sub parse_feat{
         }
         elsif ($tag eq 'locus_tag') {           # '/locus_tag'
             my @values = $o_feat->get_tag_values('locus_tag');
-            $feat{'common'}->{'locus'} = array2str(\@values, ' ');
+            $feat{'common'}->{'locus_tag'} = array2str(\@values, ' ');
         }
         elsif ($tag eq 'function') {            # '/function'
             my @values = $o_feat->get_tag_values('function');
