@@ -55,6 +55,18 @@
                         Append a '#' to the unclear date:
                             '2005'      -> '2005-01-01##'
                             '2010-02'   -> '2010-02-01#'
+  3.20      2018-03-12  Modified for updated database schema.
+                            Table 'sequence', two more fileds
+                                'mod_date'
+                                'version'
+                            Table 'feature':
+                                'locus' -> 'locus_tag'
+                        Fix bug: collection_date='Unknown'
+  3.21      2018-03-15  Modified for updated database schema.
+                            Table 'reference', one more field
+                                'consortium' - 'CONSRTM' field
+                        Still existing bug:
+                            Serial consortium connected.
 
 =cut
 # }}} POD
@@ -155,6 +167,7 @@ elsif ( ($cmd eq 'ins') or ($cmd eq 'upd') ) {
         'gene' => 0,
         'cds' => 0,
         'misc' => 0,
+        'vir' => 0,
     );
 
     # Main cycle
@@ -198,14 +211,43 @@ elsif ( ($cmd eq 'ins') or ($cmd eq 'upd') ) {
 		    # Primary tag 'source'
 		    # Parse & import for table 'virus' & 'seq'
 			if ($o_feat->primary_tag eq 'source')  {
+                #-------------------------------------------------
+                # Check whether the organism/virus already exists
+                # This violated the subsequent parse of LOCUS and feature
+                my $mod_date    = ($o_seq->get_dates)[0];
+                $mod_date       = chgGBDate( $mod_date );
+                
+                # Get taxon ID
+                my $taxon_id    = '';
 
-		        # Retrieve inserted virus record id.
-				my $vir_id = insTableVir($o_feat, $dbh);
+                if ($o_feat->has_tag('db_xref')) {
+                    my @val = $o_feat->get_tag_values('db_xref');
+                    $taxon_id = $1 if ($val[0] =~ /taxon:(\d+)/);
+                }
+                else {
+                    die "ERROR: No taxon ID found in GenBank file!\n";
+                }
+                
+                #-------------------------------------------------
 
-				unless ($vir_id) {
-				    warn "Error: Insert table 'virus' failed.\n";
-				    exit 1;
-				}
+                # Field 'id' in Table 'virus', also referenced in
+                # Table 'sequence' as 'vir_id'
+                my $vir_id  = '';
+
+                if ( $vir_id = chkVirId($taxon_id, $mod_date, $dbh) ) {
+                    # Organism/virus already exists
+                    # $vir_id
+                }
+		        else {  # Not exist, retrieve inserted virus record id.
+				    $vir_id = insTableVir($o_feat, $dbh);
+
+					unless ($vir_id) {
+					    warn "Error: Insert table 'virus' failed.\n";
+					    exit 1;
+					}
+
+                    $num{'vir'}++;
+                }
 
 		        # Prepare data for table 'seq'
 		        # Because of its fields come from different segment of Genbank file,
@@ -218,6 +260,12 @@ elsif ( ($cmd eq 'ins') or ($cmd eq 'upd') ) {
 				$seq{'vir_id'} = $vir_id;
 				$seq{'seq_start'} = $o_feat->start;
 				$seq{'seq_end'} = $o_feat->end;
+
+                # In V3.2.0
+                # 'version' and 'mod_date'
+                $seq{'version'} = $o_seq->seq_version;
+                my @seq_dates   = $o_seq->get_dates;
+                $seq{'mod_date'}    = chgGBDate( $seq_dates[0] );
 
 				if ($o_feat->has_tag('mol_type')) {
 				    my @values = $o_feat->get_tag_values('mol_type');
@@ -357,7 +405,8 @@ elsif ( ($cmd eq 'ins') or ($cmd eq 'upd') ) {
     print << "EOS";
 ==================================================
 Parse & insert into database completed.
-  $num{'seq'} seqs $cmd_str;
+  $num{'seq'} sequences $cmd_str;
+  $num{'vir'} viruses $cmd_str;
   $num{'ref'} references $cmd_str;\n
   $num{'gene'} genes $cmd_str;
   $num{'cds'} CDSes $cmd_str;
@@ -501,19 +550,21 @@ sub getSeqRefs {
     foreach my $o_ref ($ann->get_Annotations('reference')) {
 
         my $ref = {
-            'start' => $o_ref->start,
-            'end' => $o_ref->end,
-            'authors' => $o_ref->authors,
-            'title' => $o_ref->title,
-            'medline' => $o_ref->medline,
-            'pubmed' => $o_ref->pubmed,
-            'publisher' => $o_ref->publisher,
-            'location' => $o_ref->location,
-            'db' => $o_ref->database,
+            'start' => $o_ref->start // '',
+            'end' => $o_ref->end // '',
+            'authors' => $o_ref->authors // '',
+            'title' => $o_ref->title // '',
+            'medline' => $o_ref->medline // '',
+            'pubmed' => $o_ref->pubmed // '',
+            'publisher' => $o_ref->publisher // '',
+            'location' => $o_ref->location // '',
+            'db' => $o_ref->database // '',
+            'consortium' => $o_ref->consortium // '',
         };
 
         push @refs, $ref;
 
+        # say '---+> ', $o_ref->consortium;
         # DEBUG
         # print "Medline = ", $ref->{'medline'}, "\n"
         #    if (defined $ref->{'medline'});
@@ -563,8 +614,10 @@ sub insTableRef {
                 next;
             }
 
-            my @ref_fields = qw{title authors location db};
-            my @ref_values = ($ref->{'title'}, $ref->{'authors'}, $ref->{'location'}, $ref->{'db'});
+            my @ref_fields = qw{title authors location db consortium};
+            my @ref_values = ($ref->{'title'}, $ref->{'authors'}, 
+                                $ref->{'location'}, $ref->{'db'},
+                                $ref->{'consortium'} );
 
             $sql = array2PgIns(\@ref_fields, \@ref_values, 'reference', $dbh);
 
@@ -585,8 +638,9 @@ sub insTableRef {
 
             $ref->{'authors'} = '' unless (defined $ref->{'authors'});
 
-            my @ref_fields = qw{title authors location pub_date db};
-            my @ref_values = ( $ref->{'title'}, $ref->{'authors'}, $ref->{'location'}, $loc_info->{'date'}, $ref->{'db'} );
+            my @ref_fields = qw{title authors location pub_date db 
+                                consortium};
+            my @ref_values = ( $ref->{'title'}, $ref->{'authors'}, $ref->{'location'}, $loc_info->{'date'}, $ref->{'db'}, $ref->{'consortium'} );
 
             $sql = array2PgIns(\@ref_fields, \@ref_values, 'reference', $dbh);
         }
@@ -603,11 +657,12 @@ sub insTableRef {
 
             my $loc_info = parse_location($ref->{'location'});
 
-            my @ref_fields = qw{title authors location pub_date db};
+            my @ref_fields = qw{title authors location pub_date db 
+                                consortium};
 
             # my $title = $ref->{'title'} || '';
 
-            my @ref_values = ($ref->{'title'}, $ref->{'authors'}, $ref->{'location'}, $loc_info->{'date'}, $ref->{'db'});
+            my @ref_values = ($ref->{'title'}, $ref->{'authors'}, $ref->{'location'}, $loc_info->{'date'}, $ref->{'db'}, $ref->{'consortium'});
 
             $sql = array2PgIns(\@ref_fields, \@ref_values, 'reference', $dbh);
         }
@@ -681,6 +736,10 @@ sub insTableRef {
             if (defined $loc_info->{'date'}) {
                 push @ref_fields, 'pub_date';
                 push @ref_values, $loc_info->{'date'};
+            }
+            if (defined $ref->{'consortium'}) {
+                push @ref_fields, 'consortium';
+                push @ref_values, $ref->{'consortium'};
             }
 
             $sql = array2PgIns(\@ref_fields, \@ref_values, 'reference', $dbh);
@@ -952,25 +1011,32 @@ sub chgGBDate{
     elsif ($str =~ /^[\d\-]+$/) {   # e.g., 2014-04, or 2014-05-12
         $date   = $str;
     }
+    elsif ($str =~ /Unknown/) {
+        $date   = '';
+    }
     else {
-        warn "[Warning] Unknown date format: '$str'!\n\n";
+        warn "[Warning] Unidentified date format: '$str'!\n\n";
 
-        exit 1;
+        $date   = '';
+        #exit 1;
         # return;
     }
 
+    # In V3.2.0
+    # Commented for simplication
+    #
     # Fill incomplete date, such as 'YYYY' and 'YYYY-MM'
     # with '0'
-    if ($date =~ /^\d{4}$/) {    # 'YYYY'
-        # $date .= '-01-01';
-        $date .= '-01-01##';
-    }
-    elsif ($date =~ /^\d{4}\-\d{2}$/) { # 'YYYY-MM'
-        # $date .= '-01';
-        $date .= '-01#';
-    }
-    else {
-    }
+#    if ($date =~ /^\d{4}$/) {    # 'YYYY'
+#        # $date .= '-01-01';
+#        $date .= '-01-01##';
+#    }
+#    elsif ($date =~ /^\d{4}\-\d{2}$/) { # 'YYYY-MM'
+#        # $date .= '-01';
+#        $date .= '-01#';
+#    }
+#    else {
+#    }
 
     # DEBUG
     # print "NCBI date ", $str, " => ", $date, "\n";
@@ -1069,11 +1135,16 @@ sub insTableVir {
         }
         elsif ($tag eq 'collection_date') {
             my @values = $o_feat->get_tag_values($tag);
-            my $date = array2str( \@values, ' ');
+            my $gb_date = array2str( \@values, ' ');
 
             # Date: $date
 
-            $feat{'collect_date'} = chgGBDate($date);
+            # $feat{'collect_date'} = chgGBDate($date);
+            my $date    = chgGBDate($gb_date);
+
+            if ($date) {
+                $feat{'collect_date'} = $date;
+            }
         }
         elsif ($tag eq 'note') {
             my @values = $o_feat->get_tag_values($tag);
@@ -1179,21 +1250,25 @@ sub insTableVir {
 
 =head2 chkVirId
   Name:     chkVirId
-  Usage:    chkVirId($org, $dbh)
-  Function: Check whether the organism $org exists in table 'virus'.
-  Args:     $org - A string. Organism, value of tag '/organism' in feature
-            'source'.
-            $dbh - Database handle.
+  Usage:    chkVirId($taxon_id, $mod_date, $dbh)
+  Function: Check whether the organism already exists in table 'virus'.
+  Args:     $taxon_id   - An integer. 
+                          In 'source', the /db_xref="taxon:0000"
+            $mod_date   - A string.
+                          Modification date in LOCUS field.
+            $dbh        - Database handle.
   return:   A scalar, the organism/virus id for success.
             undef for no match record.
 =cut
 
 sub chkVirId {
-    my ($org, $dbh) = @_;
+    my ($taxon_id, $mod_date, $dbh) = @_;
     my $vir_id;
 
-    my $sql = 'SELECT id FROM virus WHERE organism = ' .
-        $dbh->quote($org) . ';';
+    my $sql = 'SELECT vir.id FROM virus AS vir, sequence AS seq
+                WHERE vir.taxon_id = ' . $dbh->quote($taxon_id) . 
+                ' AND seq.mod_date = ' . $dbh->quote($mod_date) .
+                ' AND seq.vir_id = vir.id';
 
     my $sth = $dbh->prepare($sql);
 

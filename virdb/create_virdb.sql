@@ -37,11 +37,15 @@
 -- 3.01     2013-09-22  Fix bug
 -- 3.02     2017-07-04  Remove 'CHECK (vir_id >=0 )' for 'taxon_id'in 
 --                      Table 'virus'. Now the default 'taxon_id' is 0.
--- 3.03     2018-030-12 New fields in table 'sequence':
+-- 3.20     2018-03-12  New fields in table 'sequence':
 --                          mod_date    - Date of lase modification
 --                          version     - i.e., accession.version
 --                      Rename fileds in table 'feature':
 --                          locus to locus_tag
+--                      Default value of 'virus.collect_date' is '' now.
+-- 3.21     2018-03-15  New field 'reference.consortium', for 'CONSRTM'
+--                      in 'REFERENCE'
+--
 -- }}} Comments
 
 -- {{{ Tables
@@ -72,7 +76,8 @@ CREATE  TABLE virus (
     isolate_src TEXT NOT NULL DEFAULT '',
     cell_line TEXT NOT NULL DEFAULT '',
     cell_type TEXT NOT NULL DEFAULT '',
-    collect_date TEXT NOT NULL DEFAULT '0001-01-01',    -- Default year
+--    collect_date TEXT NOT NULL DEFAULT '0001-01-01',    -- Default year
+    collect_date TEXT NOT NULL DEFAULT '',
     virion INTEGRE NOT NULL DEFAULT FALSE,
     proviral INTEGRE NOT NULL DEFAULT FALSE,
     focus INTEGRE NOT NULL DEFAULT FALSE,
@@ -211,9 +216,9 @@ CREATE   TABLE reference (
                     -- For submit TEXT of 'Direct submission': YYYY-MM-DD
                     -- and publish TEXT of Journal: YYYY-01-01
     pmid TEXT NOT NULL DEFAULT '',
-    location TEXT NOT NULL DEFAULT '', -- Redundant field
-    db TEXT NOT NULL DEFAULT ''        -- 'Medline' or 'Pubmed'
-
+    location TEXT NOT NULL DEFAULT '',  -- Redundant field
+    db TEXT NOT NULL DEFAULT '',        -- 'Medline' or 'Pubmed'
+    consortium TEXT NOT NULL DEFAULT '' -- Field 'CONSRTM'
 );
 
 -- }}} reference
@@ -263,7 +268,8 @@ CREATE INDEX idx_ref_start ON reference (pg_start);
 CREATE INDEX idx_ref_pmid ON reference (pmid);
 CREATE INDEX idx_ref_pubdate ON reference (pub_date);
 CREATE INDEX idx_ref_title ON reference (title);
-CREATE INDEX idx_ref_volumr ON reference (volume);
+CREATE INDEX idx_ref_volume ON reference (volume);
+CREATE INDEX idx_ref_consrtm ON reference (consortium);
 
 -- Indices for Table sequence
 
