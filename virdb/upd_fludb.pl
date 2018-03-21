@@ -161,21 +161,21 @@ EOS
         my $org     = $rh_row->{'organism'};
 
         # Debug
-        say '--+> ', $org;
+        say '===> ', $org;
 
         my ($cur_str, $cur_stype, $cur_date);
 
         # 'Influenza A virus (A/mallard/Iran/C364/2007(H9N2))'
         if ($org =~ /^Influenza.+?\((.+?)\s*\((.+?)?\)\)$/) { # w/ serotype
             $cur_str     = $1;   # Strain name
-            $cur_stype   = $2 // '';    # Serotype, if possible
+            $cur_stype   = $2;    # Serotype, if possible
         }
         elsif ($org =~ /^Influenza.+?\(.+?\)/) { # w/o serotype
             $cur_str    = $1;
             $cur_stype  = '';
         }
         else {
-            warn "[ERROR] Unmatched organism:\t", $org;
+            warn "[ERROR] Unmatched organism:\t '", $org, "'.\n";
             next;
         }
 
@@ -210,6 +210,11 @@ EOS
 sub parse_str_date {
     my ($str)   = @_;
 
+    # Debug
+    say '--+# ', $str;
+    
+    return unless $str;
+
     my $cdate;
 
     if ($str =~ /\/(\d{2,4})$/) {
@@ -230,6 +235,9 @@ sub parse_str_date {
             $cdate  = '19' . $cdate;
         }
     }
+
+    # Debug
+    say '--+# ', $cdate;
 
     return $cdate;
 }
