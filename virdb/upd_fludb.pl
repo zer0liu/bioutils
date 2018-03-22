@@ -163,6 +163,11 @@ EOS
         my $vir_id  = $rh_row->{'id'};
         my $org     = $rh_row->{'organism'};
 
+        # If there was NO filed need to be updated
+        next if ( $rh_row->{'strain'} 
+                    and $rh_row->{'serotype'}
+                    and $rh_row->{'collect_date'} );
+
         # Debug
         say '=' x 60;
         say "Org\t===> ", $org;
@@ -208,23 +213,21 @@ EOS
             $sql_str = $sql_str . ' strain = ' . 
                         $dbh->quote( $cur_str ) . ', ';
         }
-        elsif ( ! $rh_row->{'serotype'} ) { # No 'serotype' value
+        if ( ! $rh_row->{'serotype'} ) { # No 'serotype' value
             $sql_str = $sql_str . ' serotype = ' . 
                         $dbh->quote( $cur_stype ) . ', ';
         }
-        elsif ( ! $rh_row->{'collect_date'} ) { # No 'collect_date' value
+        if ( ! $rh_row->{'collect_date'} ) {# No 'collect_date' value
             $sql_str = $sql_str . ' collect_date = ' . 
                         $dbh->quote( $cur_date ) . ', ';
-        }
-        else {  # All above fileds have values
-            next;
         }
 
         $sql_str    =~ s/,\s*$//;  # Remove tailing ','
 
         $sql_str    = $sql_str . ' WHERE id = ' . $dbh->quote( $vir_id );
 
-        ## $sql_str
+        say "SQL\t--+> ", $sql_str;
+
         eval {
             my $sth = $dbh->prepare($sql_str);
             $sth->execute();
@@ -250,8 +253,8 @@ EOS
   Function: Parse strain name and fetch collection date
   Args:     Strain name, a string
   Returns:  An string of digits.
-            undef for all errors
-
+            An empty string ('') for no date information.
+            undef for any errors.
 =cut
 
 sub parse_str_date {
@@ -265,7 +268,7 @@ sub parse_str_date {
         $cdate  = $1;    
     }
     else {
-        return;
+        return '';
     }
 
     # For 2-digit year, in MySQL
@@ -278,6 +281,12 @@ sub parse_str_date {
         else {  # i.e., 19xx
             $cdate  = '19' . $cdate;
         }
+    }
+    elsif (length($cdate) == 3) {   # 3-digits ?
+        return '';
+    }
+    else {
+        #
     }
 
     return $cdate;
