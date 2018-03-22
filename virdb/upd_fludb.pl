@@ -49,7 +49,9 @@ our $dbh;
 die "[ERROR] Connect to SQLite3 database failed!\n" 
     unless ($dbh = conn_db($fdb));
 
-upd_tab_virus();
+my $num_upd_virus   = upd_tab_virus();
+
+say "[OK] Total ", $num_upd_virus, " virus records updated.";
 
 $dbh->disconnect;
 
@@ -124,7 +126,7 @@ sub conn_db {
   Name:     upd_tab_virus
   Usage:    upd_tab_virus()
   Function: Update table 'virus'
-  Args:     
+  Args:     None
   Returns:  The number of successfully updated records
 
 =cut
@@ -144,6 +146,7 @@ FROM
 EOS
     
     my $sth;
+    my $num_upd_vir = 0;
 
     eval {
         $sth    = $dbh->prepare($sql_str);
@@ -161,39 +164,83 @@ EOS
         my $org     = $rh_row->{'organism'};
 
         # Debug
-        say '===> ', $org;
+        say '=' x 60;
+        say "Org\t===> ", $org;
 
-        my ($cur_str, $cur_stype, $cur_date);
+        my ($cur_str, $cur_stype, $cur_date)    = ('', '', '');
 
         # 'Influenza A virus (A/mallard/Iran/C364/2007(H9N2))'
+        # 'Influenza B virus (B/Vienna/1/99)'
         if ($org =~ /^Influenza.+?\((.+?)\s*\((.+?)?\)\)$/) { # w/ serotype
             $cur_str     = $1;   # Strain name
             $cur_stype   = $2;    # Serotype, if possible
         }
-        elsif ($org =~ /^Influenza.+?\(.+?\)/) { # w/o serotype
+        elsif ($org =~ /^Influenza.+?\((.+?)\)/) { # w/o serotype
             $cur_str    = $1;
-            $cur_stype  = '';
+            # $cur_stype  = '';
         }
         else {
             warn "[ERROR] Unmatched organism:\t '", $org, "'.\n";
             next;
         }
 
+        # Debug
+        # say "cur_str\t--+> ", $cur_str;
+
         $cur_date   = parse_str_date($cur_str);
 
-        my $str     = $rh_row->{'strain'} // $cur_str;
-        my $isolate = $rh_row->{'isolate'};
-        my $stype   = $rh_row->{'serotype'} // $cur_stype;
-        my $country = $rh_row->{'country'};
-        my $cdate   = $rh_row->{'collect_date'} // $cur_date;
+        # my $str     = $rh_row->{'strain'} || $cur_str;
+        # my $isolate = $rh_row->{'isolate'};
+        # my $stype   = $rh_row->{'serotype'} || $cur_stype;
+        # my $country = $rh_row->{'country'};
+        # my $cdate   = $rh_row->{'collect_date'} || $cur_date;
 
         # Debug
         # say join " | ", ($org, $str, $isolate, $stype, $country, $cdate);
-        say '--+> ', $str;
-        say '--+> ', $stype;
-        say "--+> ", $cdate;
+        # say "Strain\t--+> ", $str;
+        # say "Serotype\t--+> ", $stype;
+        # say "Collection\t--+> ", $cdate;
+        
+        # If there already were values of these fileds, do not touch it
+        my $sql_str = 'UPDATE virus SET ';
 
+        if ( ! $rh_row->{'strain'} ) {  # No 'strain' value
+            $sql_str = $sql_str . ' strain = ' . 
+                        $dbh->quote( $cur_str ) . ', ';
+        }
+        elsif ( ! $rh_row->{'serotype'} ) { # No 'serotype' value
+            $sql_str = $sql_str . ' serotype = ' . 
+                        $dbh->quote( $cur_stype ) . ', ';
+        }
+        elsif ( ! $rh_row->{'collect_date'} ) { # No 'collect_date' value
+            $sql_str = $sql_str . ' collect_date = ' . 
+                        $dbh->quote( $cur_date ) . ', ';
+        }
+        else {  # All above fileds have values
+            next;
+        }
+
+        $sql_str    =~ s/,\s*$//;  # Remove tailing ','
+
+        $sql_str    = $sql_str . ' WHERE id = ' . $dbh->quote( $vir_id );
+
+        ## $sql_str
+        eval {
+            my $sth = $dbh->prepare($sql_str);
+            $sth->execute();
+        };
+        if ($@) {
+            warn "[ERROR] Updata table 'virus' in id '$vir_id' failed!\n";
+            warn "[ERROR] ", $@, "\n";
+
+            next;
+        }
+        else {
+            $num_upd_vir++;
+        }
     }
+
+    return $num_upd_vir;
 }
 
 =pod
@@ -210,9 +257,6 @@ EOS
 sub parse_str_date {
     my ($str)   = @_;
 
-    # Debug
-    say '--+# ', $str;
-    
     return unless $str;
 
     my $cdate;
@@ -235,9 +279,6 @@ sub parse_str_date {
             $cdate  = '19' . $cdate;
         }
     }
-
-    # Debug
-    say '--+# ', $cdate;
 
     return $cdate;
 }
