@@ -260,7 +260,8 @@ EOS
 
         $sql_str    = $sql_str . ' WHERE id = ' . $dbh->quote( $vir_id );
 
-        say "SQL\t--+> ", $sql_str;
+        # Debug
+        # say "Virus SQL --+> ", $sql_str;
 
         eval {
             my $sth = $dbh->prepare($sql_str);
@@ -371,13 +372,34 @@ EOS
         my $cur_seg = '';
 
         switch ($defn) {
-            #case / A /  { $cur_seg = seg4flu_A($defn, $seg) }
-            #case / B /  { $cur_seg = seg4flu_B($defn, $seg) }
-            case / C /  { $cur_seg = seg4flu_C($defn, $seg) }
-            case / D /  {  }
-            else        {  }
+            case /(?: A | A\/)/ { $cur_seg = seg4flu_A($defn, $seg) }
+            case /(?: B | B\/)/ { $cur_seg = seg4flu_B($defn, $seg) }
+            case /(?: C | C\/)/ { $cur_seg = seg4flu_C($defn, $seg) }
+            case /(?: D | D\/)/ { $cur_seg = seg4flu_D($defn, $seg) }
+            else        { warn "[ERROR] Unidentified definition '$defn'!\n" }
+        }
+        
+        my $sql_str = "UPDATE sequence SET segment = " . 
+                        $dbh->quote($cur_seg) .
+                        " WHERE id = " . $dbh->quote($seq_id);
+        
+        # Debug
+        # say "Seq SQL --+>", $sql_str;
+        
+        eval {
+            my $sth = $dbh->prepare($sql_str);
+            $sth->execute();
+        };
+        if ($@) {
+            warn "[ERROR] Update table 'sequence' in id '$seq_id' failed!\n";
+            warn "[ERROR] ", $@, "\n";
+        }
+        else {
+            $num_upd_seq++;
         }
     }
+    
+    return $num_upd_seq;
 }
 
 # {{{ seg4flu_A
@@ -472,7 +494,7 @@ sub seg4flu_A {
 
   Name:     seg4flu_B
   Usage:    seg4flu_B($defn, $seg)
-  Function: Parse segment information for influenza A virus
+  Function: Parse segment information for influenza B virus
   Args:     $defn   - Definition of sequence
             $$seg   - Segment information, if available
   Returns:  A string
@@ -486,14 +508,14 @@ sub seg4flu_B {
 
     if ($seg ne '') {
         switch ($seg) {
-            case '1'    { $cur_seg = 'PB1' }
-            case '2'    { $cur_seg = 'PB2' }
-            case '3'    { $cur_seg = 'PA' }
-            case '4'    { $cur_seg = 'HA' }
-            case '5'    { $cur_seg = 'NP' }
-            case '6'    { $cur_seg = 'NA/NB' }
-            case '7'    { $cur_seg = 'M1/BM2' }
-            case '8'    { $cur_seg = 'NS' }
+            case ['1', 'PB1']       { $cur_seg = 'PB1' }
+            case ['2', 'PB2']       { $cur_seg = 'PB2' }
+            case ['3', 'PA']        { $cur_seg = 'PA' }
+            case ['4', 'HA']        { $cur_seg = 'HA' }
+            case ['5', 'NP']        { $cur_seg = 'NP' }
+            case ['6', 'NA/NB']     { $cur_seg = 'NA/NB' }
+            case ['7', 'M1/BM2']    { $cur_seg = 'M1/BM2' }
+            case ['8', 'NS']        { $cur_seg = 'NS' }
             else { warn "[ERROR] Unmatched segment '$seg'!\n" }
         }
     }
@@ -530,7 +552,7 @@ sub seg4flu_B {
 
   Name:     seg4flu_C
   Usage:    seg4flu_C($defn, $seg)
-  Function: Parse segment information for influenza A virus
+  Function: Parse segment information for influenza C virus
   Args:     $defn   - Definition of sequence
             $$seg   - Segment information, if available
   Returns:  A string
@@ -544,14 +566,80 @@ sub seg4flu_C {
 
     if ($seg ne '') {
         switch ($seg) {
-            case '1'    { $cur_seg = 'PB1' }
-            case '2'    { $cur_seg = 'PB2' }
-            case '3'    { $cur_seg = 'PA' }
-            case '4'    { $cur_seg = 'HA' }
-            case '5'    { $cur_seg = 'NP' }
-            case '6'    { $cur_seg = 'NA/NB' }
-            case '7'    { $cur_seg = 'M1/BM2' }
-            case '8'    { $cur_seg = 'NS' }
+            case ['1', 'PB2']           { $cur_seg = 'PB2' }
+            case ['2', 'PB1']           { $cur_seg = 'PB1' }
+            case ['3', 'P3']            { $cur_seg = 'P3' }
+            case ['4', 'RNA4', 'HE']    { $cur_seg = 'HE' }
+            case ['5', 'NP']            { $cur_seg = 'NP' }
+            case ['6', 'M1/CM2']        { $cur_seg = 'M1/CM2' }
+            case ['7', 'NS']            { $cur_seg = 'NS' }
+            else { warn "[ERROR] Unmatched segment '$seg'!\n" }
+        }
+    }
+    else { # No segment information
+        switch ($defn) {
+            case /PB2
+                    | polymerase\ 2
+                    | polymerase\ protein\ 2
+                    /x { $cur_seg = 'PB2' }
+            case /PB1
+                    | polymerase\ 1
+                    | polymerase\ protein\ 1
+                    /x { $cur_seg = 'PB1' }
+            case /P3 
+                    | p3
+                    | polymerase\ 3
+                    /x { $cur_seg = 'P3' }
+            case /HE
+                    | hemagglutinin\-esterase
+                    /x { $cur_seg = 'HE' }
+            case /NP
+                    | nucleocapsid
+                    | nucleoprotein
+                    /x { $cur_seg = 'NP' }
+            case /matrix
+                    | M1
+                    | CM2
+                    | M\ gene
+                    | M\ RNA
+                    /x { $cur_seg = 'M1/CM2' }
+            case /NS
+                    | nonstructural
+                    | segment\ 7
+                    /x  { $cur_seg = 'NS' }
+            else { warn "[ERROR] Unmatched definition '$defn'!\n" }
+        }
+    }
+    return $cur_seg;
+}
+# }}}
+
+# {{{ seg4flu_D
+=pod
+
+  Name:     seg4flu_D
+  Usage:    seg4flu_D($defn, $seg)
+  Function: Parse segment information for influenza D virus
+  Args:     $defn   - Definition of sequence
+            $$seg   - Segment information, if available
+  Returns:  A string
+
+=cut
+
+sub seg4flu_D {
+    my ($defn, $seg)    = @_;
+
+    my $cur_seg = '';
+
+    if ($seg ne '') {
+        switch ($seg) {
+            case ['1', 'PB2']   { $cur_seg = 'PB2' }
+            case ['2', 'PB1']   { $cur_seg = 'PB1' }
+            case ['3', 'P3']    { $cur_seg = 'P3' }
+            case ['4', 'HE']    { $cur_seg = 'HE' }
+            case ['5', 'NP']    { $cur_seg = 'NP' }
+            case ['6', 'P42']   { $cur_seg = 'P42' }
+            case ['7', 'NS']    { $cur_seg = 'NS' }
             else { warn "[ERROR] Unmatched segment '$seg'!\n" }
         }
     }
@@ -561,24 +649,24 @@ sub seg4flu_C {
                     /x { $cur_seg = 'PB2' }
             case /PB1
                     /x { $cur_seg = 'PB1' }
-            case /PA 
-                    | polymerase\ acidic\ protein/x { $cur_seg = 'PA' }
-            case /HA
-                    | hemagglutinin
-                    /x { $cur_seg = 'HA' }
+            case /P3 
+                    | polymerase\ 3
+                    /x { $cur_seg = 'P3' }
+            case /HE
+                    | hemagglutinin\-esterase
+                    /x { $cur_seg = 'HE' }
             case /NP
-                    | nucleoprotein\ gene/x { $cur_seg = 'NP' }
-            case /NA
-                    | NB/x  { $cur_seg = 'NA/NB' }
-            case /matrix
-                    | M1
-                    | BM2
-                    | M\ gene/x { $cur_seg = 'M1/BM2' }
+                    | nucleoprotein
+                    /x { $cur_seg = 'NP' }
+            case /P42
+                    /x { $cur_seg = 'P42' }
             case /NS
-                    | nonstructural\ protein/x  { $cur_seg = 'NS' }
+                    | nonstructural
+                    /x  { $cur_seg = 'NS' }
             else { warn "[ERROR] Unmatched definition '$defn'!\n" }
         }
     }
     return $cur_seg;
 }
 # }}}
+
