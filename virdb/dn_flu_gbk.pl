@@ -20,6 +20,7 @@
 
     0.0.1   2018-03-08
     0.0.2   2018-03-12  Bug fix.
+    0.0.3   2018-06-28  Bug fix. Operate '$facc'
 
 =cut
 
@@ -65,20 +66,23 @@ GetOptions(
     "h|help"        => sub { die $usage }
 );
 
+$facc   //= '';
+
 unless (defined $mode ) {
     warn "[ERROR] Please specify 'init' or 'update' mode!\n";
     die $usage;
 }
 
-if ($mode eq 'update' and !defined $facc) {
-    warn "[ERROR] An accession number file is required in 'update' mode!\n";
-    die $usage;
-}
-elsif (-f $facc and -r $facc) {
-    die "[ERROR] Accession Number file '$facc' is NOT accessible!";
-}
-else {
-    #
+if ($mode eq 'update') {
+	if (!defined $facc) {
+	    warn "[ERROR] An accession number list file is REQUIRED in 'update' mode!\n";
+	    die $usage;
+	}
+	elsif (-f $facc and -r $facc) {
+	    die "[ERROR] Accession Number file '$facc' is NOT accessible!";
+	}
+	else {
+	    #
 }
     
 # unless( defined $fout) {
