@@ -20,8 +20,8 @@
 
     0.0.1   2018-03-08
     0.0.2   2018-03-12  Bug fix.
-    0.0.3   2018-06-28  Bug fix. Operate '$facc'
-
+    0.0.3   2018-06-28  Bug fix. Operate '$facc'.
+    0.0.4   2018-07-04  Bug fix. Remove existing 'na_dat.gz'.
 =cut
 
 use 5.010;
@@ -38,9 +38,9 @@ use POSIX qw(strftime);
 use Smart::Comments;
 
 # Global variables
-our $intvl      = 20;   # Download interval, in seconds
+our $intvl      = 30;   # Download interval, in seconds
 our $block_size = 1_000;  # Block size. i.e., Sequences number to be 
-                        # downloaded each time.
+                          # downloaded each time.
 
 my $usage = << "EOS";
 Download Genbank influenza virus sequence data.
@@ -54,7 +54,8 @@ Usage:
         dn_flu_gbk.pl --update -l|--list <acc> 
 
 Args:
-  <acc> A GenBank Accession Number file.
+  <acc> -   A text file store GenBank Accession Numbers of downloaded
+            sequences.
 EOS
 
 my ($mode, $facc, $fout);
@@ -74,22 +75,22 @@ unless (defined $mode ) {
 }
 
 if ($mode eq 'update') {
-	if (!defined $facc) {
+	unless ($facc) {
 	    warn "[ERROR] An accession number list file is REQUIRED in 'update' mode!\n";
 	    die $usage;
 	}
-	elsif (-f $facc and -r $facc) {
+
+	unless (-f $facc and -r $facc) {
 	    die "[ERROR] Accession Number file '$facc' is NOT accessible!";
 	}
-	else {
-	    #
 }
     
-# unless( defined $fout) {
-#     $fout   = output_filename();
-# 
-#     say "[NOTE] Output filename: '$fout'";
-# }
+if (-f 'na_dat.gz') {
+    unlink 'na_dat.gz' or
+        die "[ERROR] Remove previous data file 'na_dat.gz' failed!\n$!\n";
+
+    say "[NOTE] Previous 'na_dat.gz' removed.";
+}
 
 say "[NOTE] Getting all influenza viruses accession number from GenBank.";
 my $fdat    = get_nt_dat();
