@@ -230,6 +230,10 @@ elsif ( ($cmd eq 'ins') or ($cmd eq 'upd') ) {
                 
                 #-------------------------------------------------
 
+                # Disabled to check whether virus already existed
+                # in Table 'virus', since there were NO fileds
+                # to sure the UNIQUE virus exists.
+=pod
                 # Field 'id' in Table 'virus', also referenced in
                 # Table 'sequence' as 'vir_id'
                 my $vir_id  = '';
@@ -248,7 +252,17 @@ elsif ( ($cmd eq 'ins') or ($cmd eq 'upd') ) {
 
                     $num{'vir'}++;
                 }
+=cut
 
+                my $vir_id = insTableVir($o_feat, $dbh);
+
+			    unless ($vir_id) {
+				    warn "Error: Insert table 'virus' failed.\n";
+					exit 1;
+				}
+
+                $num{'vir'}++;
+ 
 		        # Prepare data for table 'seq'
 		        # Because of its fields come from different segment of Genbank file,
 		        # here is a dirty way to do this.
