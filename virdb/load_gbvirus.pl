@@ -67,6 +67,10 @@
                                 'consortium' - 'CONSRTM' field
                         Still existing bug:
                             Serial consortium connected.
+  3.22      2010-07-09  It will NOT check whether virus exists before
+                        insert into table 'virus'. 
+                        This means, 
+                        one sequence has one related virus information
 
 =cut
 # }}} POD
