@@ -45,17 +45,39 @@
 --                      Default value of 'virus.collect_date' is '' now.
 -- 3.21     2018-03-15  New field 'reference.consortium', for 'CONSRTM'
 --                      in 'REFERENCE'
+-- 3.22     2018-07-09  New field 'complete' in table 'sequence':
+--                      values:
+--                        'c' - Sequence have complete coding regions
+--                              including start and stop codons.
+--                        'nc'- Sequence only missing start and/or
+--                              stop codons.
+--                        'p' - Partial sequences.
+-- 3.30     2018-07-10  New table 'genomeset'.
 --
 -- }}} Comments
+
+
 
 -- {{{ Tables
 
 -- Create tables
 
+-- {{{ rel_date
+
+-- Table:   rel_date
+-- Content: Release date of database
+
+CREATE TABLE rel_date (
+    id          INTEGER PRIMARY KEY,
+    rel_date    TEXT NOT NULL DEFAULT CURRENT_DATE 
+);
+
+-- }}}
+
 -- {{{ virus
 
--- Table:    virus
--- Contents: Describe virus information
+-- Table:   virus
+-- Content: Describe virus information
 
 CREATE  TABLE virus (
     id INTEGER PRIMARY KEY,
@@ -93,8 +115,8 @@ CREATE  TABLE virus (
 
 -- {{{ sequence
 
--- Table:    sequence
--- Contents: sequence infomration
+-- Table:   sequence
+-- Content: Sequence infomration
 
 CREATE   TABLE sequence (
     id INTEGER PRIMARY KEY,
@@ -113,15 +135,16 @@ CREATE   TABLE sequence (
     segment TEXT NOT NULL DEFAULT '',
     pcr_primers TEXT NOT NULL DEFAULT '',
     mod_date TEXT NOT NULL DEFAULT '0001-01-01',  -- Seq modification date
-    version TEXT NOT NULL DEFAULT ''
+    version TEXT NOT NULL DEFAULT '',
+    complete TEXT NOT NULL DEFAULT ''   -- values: 'c', 'nc' or 'p'
 );
 
 -- }}} sequence
 
 -- {{{ xref_sr
 
--- Table:    xref_sr
--- Contents: Cross mapping between tables 'sequence' & 'reference'
+-- Table:   xref_sr
+-- Content: Cross mapping between tables 'sequence' & 'reference'
 
 CREATE   TABLE xref_sr (
     id INTEGER PRIMARY KEY,
@@ -134,8 +157,8 @@ CREATE   TABLE xref_sr (
 
 -- {{{ feature
 
--- Table 'feature'
--- Contents: All features (primary tags), except 'source'.
+-- Table:   feature
+-- Content: All features (primary tags), except 'source'.
 
 CREATE   TABLE feature (
     id INTEGER PRIMARY KEY,
@@ -169,8 +192,8 @@ CREATE   TABLE feature (
 
 -- {{{ db_xref
 
--- Table 'db_xref'
--- For qualifier '/db_xref=DB:id'
+-- Table:   db_xref
+-- Content: For qualifier '/db_xref=DB:id'
 
 CREATE   TABLE db_xref (
     id INTEGER PRIMARY KEY,
@@ -185,8 +208,8 @@ CREATE   TABLE db_xref (
 
 -- {{{ misc_qualif
 
--- Table 'misc_qualif'
--- For qualifiers not exist in table 'feature'
+-- Table:   misc_qualif
+-- Content: For qualifiers not exist in table 'feature'
 
 CREATE   TABLE misc_qualif (
     id INTEGER PRIMARY KEY,
@@ -194,14 +217,14 @@ CREATE   TABLE misc_qualif (
                         -- Xref to 'feature.id'
     qualif TEXT NOT NULL DEFAULT '',
     value TEXT NOT NULL DEFAULT ''
-    
 );
 
 -- }}} misc_qualif
 
 -- {{{ reference
 
--- Table 'reference'
+-- Table:   reference
+-- Content: Reference information
 
 CREATE   TABLE reference (
     id INTEGER PRIMARY KEY,
@@ -223,11 +246,38 @@ CREATE   TABLE reference (
 
 -- }}} reference
 
+-- {{{ genomeset
+
+-- Table 'genomeset'
+
+CREATE TABLE genomeset (
+    id          INTEGER PRIMARY KEY,
+    accession   TEXT NOT NULL DEFAULT '',
+    host        TEXT NOT NULL DEFAULT '',
+    segment     TEXT NOT NULL DEFAULT '',
+    country     TEXT NOT NULL DEFAULT '',
+    col_date    TEXT NOT NULL DEFAULT '',
+    flu_type    TEXT NOT NULL DEFAULT '',   -- values 'A', 'B', 'C' or 'D'
+    seq_len     INTEGER NOT NULL DEFAULT 0,
+    vir_name    TEXT NOT NULL DEFAULT '',
+    str_name    TEXT NOT NULL DEFAULT '',
+    age         TEXT NOT NULL DEFAULT '',
+    gender      TEXT NOT NULL DEFAULT '',
+    group_id    INTEGER NOT NULL DEFAULT 0
+);
+-- }}}
+
 -- }}} Tables
+
+
 
 -- {{{ Indices
 
 -- Create Indices
+
+-- Index for Table rel_date
+
+CREATE INDEX idx_rel_date_rel_date ON rel_date(rel_date);
 
 -- Indices for Table db_xref
 
@@ -283,6 +333,7 @@ CREATE INDEX idx_seq_vid ON sequence (vir_id);
 CREATE INDEX idx_seq_seg ON sequence (segment);
 CREATE INDEX idx_seq_mod_date ON sequence (mod_date);
 CREATE INDEX idx_seq_version ON sequence (version);
+CREATE INDEX idx_seq_complete ON sequence (complete);
 
 -- Indices for Table virus
 
@@ -310,6 +361,22 @@ CREATE INDEX idx_virus_taxid ON virus (taxon_id);
 
 CREATE INDEX idx_xref_sr_rid ON xref_sr (ref_id);
 CREATE INDEX idx_xref_se_sid ON xref_sr (seq_id);
+
+-- Indices for Table genomeset
+
+CREATE INDEX idx_genomeset_id ON genomeset (id);
+CREATE INDEX idx_genomeset_accession ON genomeset (accession);
+CREATE INDEX idx_genomeset_host ON genomeset (host);
+CREATE INDEX idx_genomeset_segment ON genomeset (segment);
+CREATE INDEX idx_genomeset_country ON genomeset (country);
+CREATE INDEX idx_genomeset_col_date ON genomeset (col_date);
+CREATE INDEX idx_genomeset_flu_type ON genomeset (flu_type);
+CREATE INDEX idx_genomeset_seq_len ON genomeset (seq_len);
+CREATE INDEX idx_genomeset_vir_name ON genomeset (vir_name);
+CREATE INDEX idx_genomeset_str_name ON genomeset (str_name);
+CREATE INDEX idx_genomeset_age ON genomeset (age);
+CREATE INDEX idx_genomeset_gender ON genomeset (gender);
+CREATE INDEX idx_genomeset_group_id ON genomeset (group_id);
 
 -- }}} Indices
 
