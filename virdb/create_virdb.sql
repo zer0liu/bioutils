@@ -52,7 +52,10 @@
 --                        'nc'- Sequence only missing start and/or
 --                              stop codons.
 --                        'p' - Partial sequences.
--- 3.30     2018-07-10  New table 'genomeset'.
+-- 3.30     2018-07-10  New table 'genomeset':
+--                        Store data from ftp://ftp.ncbi.nih.gov/genomes/INFLUENZA/genomeset.dat
+--                      New table 'rel_date':
+--                        Store source datebase release information.
 --
 -- }}} Comments
 
@@ -69,6 +72,7 @@
 
 CREATE TABLE rel_date (
     id          INTEGER PRIMARY KEY,
+    db          TEXT NOT NULL DEFAULT '',
     rel_date    TEXT NOT NULL DEFAULT CURRENT_DATE 
 );
 
@@ -277,7 +281,8 @@ CREATE TABLE genomeset (
 
 -- Index for Table rel_date
 
-CREATE INDEX idx_rel_date_rel_date ON rel_date(rel_date);
+CREATE INDEX idx_rel_date_db ON rel_date (db);
+CREATE INDEX idx_rel_date_rel_date ON rel_date (rel_date);
 
 -- Indices for Table db_xref
 

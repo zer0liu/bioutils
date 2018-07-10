@@ -83,19 +83,32 @@ use Bio::SeqIO;
 # use Data::Dumper;
 use DBI;
 use Getopt::Long;
+use POSIX qw(strftime);
 use Smart::Comments;
 
-my ($fin, $fdb);
+my ($fin, $fdb, $rel_date);
 my $cmd = 'ins';
 
 GetOptions(
     "i=s" => \$fin,
     "c=s" => \$cmd,
     "d=s" => \$fdb,
+    "r=s" => \$rel_date,
     "h" => sub { usage() },
 );
 
 usage() unless ($fin);
+
+# Parse release date information
+if (defined $rel_date) {
+    unless ($rel_date =~ /\d{4}\-\d{2}\-\d{2}/) {
+        warn "[ERROR] Date format must be 'yyyy-mm-dd' format!\n";
+        exit 1;
+    }
+}
+else {  # Date not provided, use current date
+    $rel_date   = strftime "%Y-%m-%d", localtime;
+}
 
 # {{{ connect db
 # Database parameters.
@@ -448,26 +461,28 @@ exit 0;
 #
 #			      Subroutines
 #
-# usage - Show usage information.
-# chkAccNum - Check the existance of an accession number.
-# getSeqRef - Get reference information of a sequence.
-# insTableRef - Insert records into table 'reference'.
+# usage          - Show usage information.
+# insRelDate     - Insert source database release date into 
+#                  table 'rel_date'
+# chkAccNum      - Check the existance of an accession number.
+# getSeqRef      - Get reference information of a sequence.
+# insTableRef    - Insert records into table 'reference'.
 # parse_location - Parse reference location information, fetch date,
 #                  pages, journal, etc.
-# chkRefPmid - Check the existance of a PUBMED id (pmid).
-# chgGBDate - Convert GenBank format date to 'yyyy-mm-dd' format.
-# insTableVir - Insert records into table 'virus'.
-# chkVirId - Check whether organism already exists. (dismissed)
-# insTableSeq - Insert records into table 'seq'.
-# parse_feat - parse feature tag-qualifiers.
-# insFeatTable - Insert records into table 'feature'.
-# chkRef - Check whether a location of a refereoce record
+# chkRefPmid     - Check the existance of a PUBMED id (pmid).
+# chgGBDate      - Convert GenBank format date to 'yyyy-mm-dd' format.
+# insTableVir    - Insert records into table 'virus'.
+# chkVirId       - Check whether organism already exists. (dismissed)
+# insTableSeq    - Insert records into table 'seq'.
+# parse_feat     - parse feature tag-qualifiers.
+# insFeatTable   - Insert records into table 'feature'.
+# chkRef         - Check whether a location of a refereoce record
 #                  already exists.
-# _chkAuthor - Chkeck the existance of author name.
-# insXrefTable - Insert records for a cross reference table, which
-#               is a one-multi mapping table.
-# _version - Provide version of this script. (dismissed)
-# delSeq - Delete genmoe records, dismiss reference and author.
+# _chkAuthor     - Chkeck the existance of author name.
+# insXrefTable   - Insert records for a cross reference table, which
+#                  is a one-multi mapping table.
+# _version       - Provide version of this script. (dismissed)
+# delSeq         - Delete genmoe records, dismiss reference and author.
 #
 #=====================================================================
 
@@ -497,13 +512,41 @@ Usage: load_gbvirus.pl -i <infile> [-c <ins|upd|del>] [-d <file>]
                del: DELETE records from database.
   -d <file>:   Database resource filename.
                Default is '.dbrc' file under current directory.\n
-NOTE: For 'delete' function, the input file must be a list of Accession Numbers.
+  -r <date>:   Source database release date.
+               Format 'yyyy-mm-dd'.
+               Defalut current date.
+NOTE: 
+- For 'delete' function, the input file is a list of Accession Numbers.
+- Here the source database always 'GenBank'.
 EOS
 
 exit 0;
 }
 
 # }}} usage
+
+# @2018-07-10
+# {{{ insRelDate
+
+=head2 insRelDate
+  Name:     insRelDate
+  Usage:    insRelDate($date, $dbh)
+  Function: Insert source database release date to table 'rel_date'
+  Args:     $date - String, in 'yyyy-mm-dd' format.
+            $dbh  - Database handle.
+  Ret:      undef for all errors.
+=cut
+
+sub insRelDate {
+    my ($date, $dbh) = @_;
+
+    my $qrystr  = "INSERT INTO rel_date (db, rel_date)" .
+                    "VALUES ('GenBank', " .
+                    $dbh->quote($date) . ");";
+    
+    my $sth     = $dbh->do($qrystr);
+}
+# }}}
 
 # {{{ chkAccNum
 
