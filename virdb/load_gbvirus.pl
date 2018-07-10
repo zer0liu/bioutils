@@ -71,6 +71,7 @@
                         insert into table 'virus'. 
                         This means, 
                         one sequence has one related virus information
+  3.23      2010-07-10  Update table 'rel_date'
 
 =cut
 # }}} POD
@@ -164,6 +165,7 @@ if ($cmd eq 'del') {
     close(IN);
 }
 # }}} cmd 'Delete'
+
 # {{{ cmd 'Insert/Update'
 # Operation 'INSERT' or 'UPDATE'
 elsif ( ($cmd eq 'ins') or ($cmd eq 'upd') ) {
@@ -186,6 +188,27 @@ elsif ( ($cmd eq 'ins') or ($cmd eq 'upd') ) {
         'misc' => 0,
         'vir' => 0,
     );
+
+    # Insert release date
+    $dbh->begin_work;
+
+    eval {
+        insRelDate($rel_date, $dbh);
+
+        $dbh->commit();
+    };
+
+    if ($@) {
+        warn "Error: Insert data failed!\n";
+
+        warn '-' x 60, "\n";
+        warn $@, "\n";
+        warn '-' x 60, "\n";
+
+        $dbh->rollback;
+
+        exit 1;
+    }
 
     # Main cycle
     while (my $o_seq = $o_seqi->next_seq) {
