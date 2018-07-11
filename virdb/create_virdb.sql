@@ -259,9 +259,9 @@ CREATE TABLE genomeset (
     accession   TEXT NOT NULL DEFAULT '',
     host        TEXT NOT NULL DEFAULT '',
     segment     TEXT NOT NULL DEFAULT '',
+    serotype    TEXT NOT NULL DEFAULT '',
     country     TEXT NOT NULL DEFAULT '',
     col_date    TEXT NOT NULL DEFAULT '',
-    flu_type    TEXT NOT NULL DEFAULT '',   -- values 'A', 'B', 'C' or 'D'
     seq_len     INTEGER NOT NULL DEFAULT 0,
     vir_name    TEXT NOT NULL DEFAULT '',
     str_name    TEXT NOT NULL DEFAULT '',
@@ -375,7 +375,7 @@ CREATE INDEX idx_genomeset_host ON genomeset (host);
 CREATE INDEX idx_genomeset_segment ON genomeset (segment);
 CREATE INDEX idx_genomeset_country ON genomeset (country);
 CREATE INDEX idx_genomeset_col_date ON genomeset (col_date);
-CREATE INDEX idx_genomeset_flu_type ON genomeset (flu_type);
+CREATE INDEX idx_genomeset_serotype ON genomeset (serotype);
 CREATE INDEX idx_genomeset_seq_len ON genomeset (seq_len);
 CREATE INDEX idx_genomeset_vir_name ON genomeset (vir_name);
 CREATE INDEX idx_genomeset_str_name ON genomeset (str_name);
