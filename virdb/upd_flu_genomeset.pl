@@ -266,3 +266,40 @@ sub en_db_bulk {
 
     return 1;
 }
+
+=pod
+
+  Name:     chk_seq_acc
+  Usage:    chk_seq_acc($acc, $dbh)
+  Function: Check existance of given accession number in table 'genomeset'
+  Args:     $acc    Accession number. A string
+  Return:   id      - Record ID, an integer
+            undef   - Any errors
+
+=cut
+
+sub chk_seq_acc {
+    my ($acc, $dbh)   = @_;
+
+    my $sql = "SELECT id FROM genomeset WHERE accession = " .
+                $dbh->quote($acc) . ";";
+
+    my $sth;
+
+    eval {
+        $sth = $dbh->prepare($sql);
+
+        $sth->execute();
+    );
+
+    if ($@) {
+        warn "[ERROR] Query genomeset with accession number '" .
+            $acc . "' failed!\n$@\n";
+
+        return;
+    }
+
+    my $rh_row  = $sth->fetchrow_hashref();
+    return $rh_row->{'id'};
+}
+
