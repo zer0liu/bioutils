@@ -1,4 +1,4 @@
-#! /usr/bin/env perl
+#!/usr/bin/perl
 
 =head1 NAME
 
@@ -19,6 +19,7 @@
 =VERSION
 
     0.0.1   - 2018-07-11
+    0.0.2   - 2018-07-18    Check existance of accession number before insert
 
 =cut
 
@@ -43,7 +44,13 @@ GetOptions(
     "h"     => sub { usage() }
 );
 
-die "[ERROR] No database file provided!\n" unless (defined $fdb);
+unless (defined $fdb) {
+    warn "[ERROR] No database file provided!\n\n";
+    
+    usage();
+
+    exit 1;
+}
 
 # Download 'genomeset.dat.gz' if necessary
 unless (defined $fdat)  {
@@ -53,9 +60,11 @@ unless (defined $fdat)  {
     $fdat   = get_dat($dat_url);
 }
 
+# Connect to database
 die "[ERROR] Connect SQLite3 database 'fdb' failed!\n"
    unless ($dbh = conn_db($fdb));
 
+# Enable bulk mode
 die "[ERROR] Enable database bulk mode failed!\n"
    unless ( en_db_bulk($dbh) );
 
@@ -72,6 +81,12 @@ while (<$fh_dat>) {
     my @items   = split /\t/;
 
     my $acc     = $items[0];
+
+    if ( chk_seq_acc($acc, $dbh) ) {
+        # warn "[WARN] Sequence '$acc' already exists!\n";
+        next;
+    };
+
     my $host    = $items[1];
     my $segment = $items[2];
     my $serotype= $items[3];
@@ -290,7 +305,7 @@ sub chk_seq_acc {
         $sth = $dbh->prepare($sql);
 
         $sth->execute();
-    );
+    };
 
     if ($@) {
         warn "[ERROR] Query genomeset with accession number '" .
