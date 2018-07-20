@@ -16,6 +16,7 @@
 
     0.0.1   2018-04-25
     0.1.0   2018-07-20  New feature: Wether output stable sites
+    0.1.1   2018-07-20  Add progress bar.
 
 =cut
 
@@ -27,6 +28,7 @@ use Bio::AlignIO;
 use File::Basename;
 use Getopt::Long;
 use Smart::Comments;
+use Term::ProgressBar;
 
 #===========================================================
 #
@@ -69,6 +71,8 @@ GetOptions(
     'v'     => \$F_var,
     'h'     => sub { usage(); exit 1 },
 );
+
+### $F_var
 
 unless (defined $faln) {
     warn "[ERROR] Alignment file is required!\n";
@@ -114,8 +118,11 @@ my $ra_seqids   = get_seqids( $o_aln );
 shift @{ $ra_seqids };
 
 # Get all/variation sites information
-say "[Note] Analysing variation sites ...";
-my $rh_sites    = get_vsites($o_aln);
+say "[NOTE] Analysing variation sites ...";
+my $rh_sites    = parse_sites($o_aln);
+
+# Location of stable sites
+my $rh_ssites   = get_stable_sites($rh_sites);
 
 # Then output variation sites to a file 'vsites.txt'
 say "[NOTE] Output variation sites to file 'vsites.txt.'";
@@ -128,11 +135,23 @@ my @o_seqs  = $o_aln->each_seq();
 # This sequence is REMOVED from result
 my $o_refseq    = shift @o_seqs;
 
+say "[NOTE] Parsing variation status of each site in each sequence ...";
+
 # Parse reference region information
 my $rh_ref_regions  = parse_regions($o_refseq->seq, $ra_regions);
 my @ref_sites       = split //, $o_refseq->seq;
 
 my %result;
+
+# Launch a progress bar
+my $prog_bar_var    = 0;
+my $prog_bar_max    = scalar( @o_seqs );
+
+my $prog_bar    = Term::ProgressBar->new({
+    name    => 'Sequence:',
+    count   => $prog_bar_max,
+    ETA     => 'linear',
+});
 
 # Traverse all of the rest sequences
 for my $o_seq ( @o_seqs ) {
@@ -141,26 +160,28 @@ for my $o_seq ( @o_seqs ) {
 
     my @seq_sites   = split //, $seq;
 
-    $result{$seq_id}    //= '';
+    $result{$seq_id}    = '';
 
-    my $rh_seq_regions  = parse_regions($seq);
+    my $rh_seq_regions  = parse_regions($seq, $ra_regions);
+    
+    ## $rh_seq_regions
 
     # Traverse all sites/locations of the seq in $rh_sites
     # for my $loc (sort {$a<=>$b} keys %{ $rh_sites } ) {
 
     for my $loc_idx (0 .. $aln_len-1) {
+        my $cur_loc = $loc_idx + 1;
+        
+        # If output variation sites ONLY
+        next if ($F_var and $rh_ssites->{$cur_loc});
+        
         if ($seq_sites[$loc_idx] eq '-') { # A gap ('-')
             $result{$seq_id}    .= ',-';
             next;
         }
         elsif ( $seq_sites[$loc_idx] eq $ref_sites[$loc_idx] ) {# Base not changed 
-            if ($F_var) {   # Only output variation sites
-                next;
-            }
-            else {          # Output all sites
-                $result{$seq_id}    .= ',a';
-                next;
-            }
+            $result{$seq_id}    .= ',a';
+            next;
         }
         else {  # A variation site
             my $site_type;  # 1-char site type: u, s, n, i
@@ -173,7 +194,7 @@ for my $o_seq ( @o_seqs ) {
                     = $rh_seq_regions->{$region}->{end};
                 my $region_type
                     = $rh_seq_regions->{$region}->{type};
-
+                    
                 # Real location of this site, which is greater than
                 # $loc_idx 1
                 my $loc = $loc_idx + 1;
@@ -213,14 +234,21 @@ for my $o_seq ( @o_seqs ) {
 
                     last;   # Break cycle
                 }
+                ## $site_type
             }
 
             $result{$seq_id}    = $result{$seq_id} . ',' . $site_type;
         }
     }
+    
+    $prog_bar->update( $prog_bar_var );
+    $prog_bar_var++;
 }
 
+$prog_bar->update($prog_bar_max);
+
 ## %result
+say "[NOTE] Output result file '$fout' ...\n";
 
 # Output result to result file
 open my $fh_out, ">", $fout or
@@ -391,7 +419,7 @@ sub load_regions {
 }
 
 =pod 
-  Name:     get_vsites
+  Name:     parse_sites
   Function: Parse alignment and return SNP/variatin site locations
   Usage:    get_snp_sites($o_aln)
   Args:     A Bio::SimpleAlign object
@@ -408,7 +436,7 @@ sub load_regions {
             )
 =cut
 
-sub get_vsites {
+sub parse_sites {
     my ($o_aln)    = (@_);
 
     # Array to store SNP sites
@@ -417,7 +445,11 @@ sub get_vsites {
     # Alignment length
     my $aln_len = $o_aln->length;
 
-    ## $aln_len
+    my $prog_bar    = Term::ProgressBar->new({
+        name    => 'Sites:',
+        count   => $aln_len,
+        ETA     => 'linear',
+    });
 
     my %sites;
 
@@ -444,12 +476,39 @@ sub get_vsites {
             $sites{$i}->{'isVar'}   = 0;    # Stable site
             $sites{$i}->{'items'}   = \%items;
         }
-
+        
+        $prog_bar->update($_);
     }
 
+    $prog_bar->update($aln_len);
     ## %sites
 
     return \%sites;
+}
+
+=pod
+
+  Name:     get_stable_sites
+  Function: Get stable site locaionts
+  Usage:    get_stable_sites($rh_sites)
+  Args:     $rh_sites   - A hash reference of all sites
+  Return:   A reference of hash
+  
+=cut
+
+sub get_stable_sites {
+    my ($rh_sites)  = @_;
+    
+    my %ssites;
+    
+    for my $loc ( sort {$a<=>$b} keys %{ $rh_sites } ) {
+        # Dismiss stable sites
+        next if ( $rh_sites->{$loc}->{'isVar'});
+
+        $ssites{$loc}   = 1;
+    }
+    
+    return \%ssites;
 }
 
 =pod
@@ -473,10 +532,14 @@ sub out_vsites {
 
         print $fh_out $loc;
 
-        while ( my ($k, $v) = each %{$rh_sites->{$loc}->{'items'}} ) {
-            print $fh_out "\t", $v, $k;
-        }
+        #while ( my ($k, $v) = each %{$rh_sites->{$loc}->{'items'}} ) {
+        #    print $fh_out "\t", $v, $k;
+        #}
 
+        for my $aa ( sort keys %{$rh_sites->{$loc}->{'items'}} ) {
+            print $fh_out "\t", $rh_sites->{$loc}->{'items'}->{$aa}, $aa;
+        }
+        
         print $fh_out "\n";
     }
 
