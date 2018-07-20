@@ -1,0 +1,7 @@
+# Region    Start   End
+5UTR    1   50
+CDS1    51  104
+Int1    105 200
+CDS2    201 605
+3UTR    606 670
+
