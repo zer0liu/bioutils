@@ -89,6 +89,8 @@ unless (defined $fregion) {
 
 my $ra_regions  = load_regions( $fregion );
 
+### $ra_regions
+
 unless (defined $fout) {
     $fout   = out_filename($faln);
 
@@ -402,7 +404,7 @@ sub load_regions {
         next if /^\s*$/;
         chomp();
 
-        my ($name, $start, $end)  = split /\t/;
+        my ($name, $start, $end)  = split /\s+/;
 
         my %region;
 
