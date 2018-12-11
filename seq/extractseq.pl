@@ -42,6 +42,10 @@ Extract and substract sequences from a multi-fasta format file and output
 to the STDOUT.
 Usage:
   extractseq.pl <fasta file> <seqid file>
+Note:
+  The format of <seqid file> is:
+  "<Seqid>    <Start>    <End>"
+  Fields have to be separated by a "\t".
 EOS
 
 # Get sequence file
