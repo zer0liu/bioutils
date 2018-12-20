@@ -17,6 +17,7 @@
     0.0.1   2018-04-25
     0.1.0   2018-07-20  New feature: Wether output stable sites
     0.1.1   2018-07-20  Add progress bar.
+    0.2.0   2018-12-20  Deal with degenerate codon.
 
 =cut
 
@@ -28,6 +29,7 @@ use Bio::AlignIO;
 use File::Basename;
 use Getopt::Long;
 use Smart::Comments;
+use Switch;
 use Term::ProgressBar;
 
 #===========================================================
@@ -72,7 +74,7 @@ GetOptions(
     'h'     => sub { usage(); exit 1 },
 );
 
-### $F_var
+## $F_var
 
 unless (defined $faln) {
     warn "[ERROR] Alignment file is required!\n";
@@ -89,7 +91,7 @@ unless (defined $fregion) {
 
 my $ra_regions  = load_regions( $fregion );
 
-### $ra_regions
+## $ra_regions
 
 unless (defined $fout) {
     $fout   = out_filename($faln);
@@ -317,6 +319,7 @@ Note:
 	"i"  Inter-gene region
 	"a"  Stable/unchanged sites.
   5. Works on single stranded virus only.
+  6. Degenerate codon accepted now.
 EOS
 
 }
@@ -625,7 +628,8 @@ sub parse_regions {
                 $region_detail{$id}->{end}
                     = $cds_start + $num_cds * 3 + 2;
                 $region_detail{$id}->{codon}    = $codon;
-                $region_detail{$id}->{aa}       = $codon2aa{$codon};
+                # $region_detail{$id}->{aa}       = $codon2aa{$codon};
+                $region_detail{$id}->{aa}       = degnr_codon2aa($codon);
                 $region_detail{$id}->{type} = "CDS";
 
                 $id++;
@@ -638,3 +642,45 @@ sub parse_regions {
 
     return \%region_detail;
 }
+
+=pod
+
+  Name:     degnr_codon2aa
+  Usage:    degnr_codon2aa( $codon )
+  Function: Convert degenerated codon to related single-character
+            amino acid
+  Args:     A string
+  Return:   A character
+            undef for all errors
+
+=cut
+
+sub degnr_codon2aa {
+    my ($codon) = @_;
+
+    switch ( $codon ) {
+        case /GC./              { return 'A' }
+        case /CG.|AG(?:A|G|R)/  { return 'R' }
+        case /AA(?:T|C|Y)/      { return 'N' }
+        case /GA(?:T|C|Y)/      { return 'D' }
+        case /TG(?:T|C|Y)/      { return 'C' }
+        case /CA(?:A|G|R)/      { return 'Q' }
+        case /GA(?:A|G|R)/      { return 'E' }
+        case /GG./              { return 'G' }
+        case /CA(?:T|C|Y)/      { return 'H' }
+        case /AT(?:T|C|A|H)/    { return 'I' }
+        case /ATG/              { return 'M' }
+        case /TT(?:A|G|R)|CT./  { return 'L' }
+        case /AA(?:A|G|R)/      { return 'K' }
+        case /TT(?:T|C|Y)/      { return 'F' }
+        case /CC./              { return 'P' }
+        case /TC.|AG(?:T|C|Y)/  { return 'S' }
+        case /AC./              { return 'T' }
+        case /TGG/              { return 'W' }
+        case /TA(?:T|C|Y)/      { return 'Y' }
+        case /GT./              { return 'V' }
+        case /TAA|TGA|TAG/      { return '*' }
+        else                    { return 'X' }
+    }
+}
+
