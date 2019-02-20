@@ -143,9 +143,9 @@ sub parse_gbk_feature {
 
             # Get range
 
-            say "[TEST] ", $o_feat->location->to_FTstring;
+            # say "[TEST] ", $o_feat->location->to_FTstring;
 
-=pod
+=pod {{{
             if ($o_feat->location->isa('Bio::Location::Simple')) {
                 $range  = $o_feat->location->start . '..' .
                     $o_feat->location->end;
@@ -167,10 +167,11 @@ sub parse_gbk_feature {
                     blessed( $o_feat->location ), "' on gene/CDS '" ,
                     $gene, "'\n";
             }
-=cut
+=cut }}}
 
             my $loc_str = $o_feat->location->to_FTstring;
             
+            # 'complement' field, for future use
             if ($loc_str =~ /complement/) {
                 $gene_locs{ $gene }->{ 'complement' }   = 1;
             }
@@ -178,6 +179,7 @@ sub parse_gbk_feature {
                 $gene_locs{ $gene }->{ 'complement' }   = 0;
             }
 
+            # 'join' field, for future use
             if ($loc_str =~ /join/) {
                 $gene_locs{ $gene }->{ 'join' } = 1;
             }
@@ -186,6 +188,7 @@ sub parse_gbk_feature {
             }
 
 
+            # 'range' field, store locations ONLY
             if ($loc_str =~ /([\d\.\,\s]+)/) {
                 $gene_locs{ $gene }->{ 'range' }    = $1;
             }
@@ -196,7 +199,7 @@ sub parse_gbk_feature {
         }
     }
 
-    ### %gene_locs
+    ## %gene_locs
 
     return \%gene_locs;
 }
@@ -236,3 +239,77 @@ sub check_gbk_file {
         return 0;   # Not a (multiple) GenBank flat file
     }
 }
+
+=pod
+
+  Name:     parse_aln
+  Usage:    parse_aln( $faln )
+  Function: Parse alignment file
+  Args:     A string for alignment file
+  Returns:  A referene of hash for nucleotide compsitions in each site.
+            {
+                $location   => {
+                    isVar   => 1,   # BOOL, 
+                    items   => {
+                        A   => 1,
+                        C   => 5,
+                        G   => 3,
+                        T   => 7,
+                        ...
+                    },
+                },
+            }
+  Note:     It assumes there is ONLY one alignemt in the file.
+
+=cut
+
+sub parse_aln {
+    my ($faln, $fmt)  = @_;
+
+    my $o_alni  = Bio::SeqIO->new(
+        -file   => $faln,
+        -format => $fmt,
+    );
+
+    my $o_aln   = $o_alni->next_aln;
+
+    my $aln_len = $o_aln->length;
+
+    my %sites;
+
+    for my $i (1 .. $aln_len)   {   # Aligment starts from '1'
+        my $o_aln_slice = $o_aln->slice($i, $i, 1);
+
+        my %items;
+
+        for my $o_seq ($o_aln_slice->each_seq)  {
+            my $item    = $o_seq->seq;  # Get single characters
+
+            # Here works on any characters, including '-'
+
+            $items{ $item } = ( defined $items{ $item } ) ?
+                $items{ $item } + 1 : 1;
+
+            if ( scalar ( keys %items ) >= 2 ) {
+                $sites{ $i }->{ 'isVar' }   = 1;    # is variation site
+                $sites{ $i }->{ 'items' }   = \%items;
+            }
+            else {
+                $sites{ $i }->{ 'isVar' }   = 0;    # Stable site
+                $sites{ $i }->{ 'items' }   = \%items;
+            }
+        }
+    }
+
+    return \%sites;
+}
+
+=pod
+
+  Name:     parse_snps
+  Usage:    parse_snps($rh_site, )
+  Function: Parse SNP sites and related information
+  Args:     $rh_site - Reference of hash for each site information
+            $rh_feat - Reference of hash for 
+
+=cut
