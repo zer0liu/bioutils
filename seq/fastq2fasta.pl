@@ -2,7 +2,7 @@
 
 =head1 NAME
 
-    fastq2fasta.pl - 
+    fastq2fasta.pl - Convert FASTQ file to FASTA format.
 
 =SYNOPSIS
 
@@ -24,14 +24,15 @@ use warnings;
 
 use Getopt::Long;
 use File::Basename;
+use Smart::Comments;
 
 my $F_nodesc    = 0;
 my ($fq, $fa);
 
 GetOptions(
     'nd'    => \$F_nodesc,
-    'fq=s'  => \$fq,
-    'fa=s'  => \$fa,
+    'i=s'  => \$fq,
+    'o=s'  => \$fa,
     'h'     => sub { usage() },
 );
 
@@ -43,9 +44,11 @@ unless (defined $fq) {
 
 # Create output filename if necessary
 unless (defined $fa) {
-    my ($dir, $base, $suffix)   = fileparse($fq, qr{\..*});
+    my ($filename, $dir, $suffix)   = fileparse($fq, qr{\..*});
 
-    $fa = $base . '.fa';
+    $fa = $filename . '.fa';
+
+    ### $fa
 }
 
 open my $fh_fq, "<", $fq
@@ -59,7 +62,8 @@ while ( <$fh_fq> ) {
     next if /^\s*$/;
     chomp;
 
-    if (/^@(\w+)\s+(.+?)$/) { # An ID line
+    if (/^@(\S+)\s*?(.*?)$/) { # An ID line
+        ### $1
         # Output sequence ID and/or description
         if ( $F_nodesc ) {
             say $fh_fa '>', $1;
@@ -107,14 +111,4 @@ Arguments:
   fasta:    Output FASTA filename. Optional.
 EOS
 }
-
-=pod
-
-  Name:     
-  Usage:    
-  Function: 
-  Args:     
-  Returns:  
-
-=cut
 
