@@ -15,6 +15,7 @@
 =VERSION
 
     0.0.1   - 2019-02-20
+    0.0.2   - 2019-02-21    Bug fix
 
 =cut
 
@@ -47,8 +48,6 @@ unless (defined $fa) {
     my ($filename, $dir, $suffix)   = fileparse($fq, qr{\..*});
 
     $fa = $filename . '.fa';
-
-    ### $fa
 }
 
 open my $fh_fq, "<", $fq
@@ -63,7 +62,6 @@ while ( <$fh_fq> ) {
     chomp;
 
     if (/^@(\S+)\s*?(.*?)$/) { # An ID line
-        ### $1
         # Output sequence ID and/or description
         if ( $F_nodesc ) {
             say $fh_fa '>', $1;
