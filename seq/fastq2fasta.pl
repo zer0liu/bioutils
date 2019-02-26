@@ -16,6 +16,8 @@
 
     0.0.1   - 2019-02-20
     0.0.2   - 2019-02-21    Bug fix
+    0.0.3   - 2019-02-26    New feature: remove non-printable characters. 
+                            Such as: \000 (^@)
 
 =cut
 
@@ -27,13 +29,15 @@ use Getopt::Long;
 use File::Basename;
 use Smart::Comments;
 
-my $F_nodesc    = 0;
+my $F_nodesc        = 0;
+my $F_rm_nonprint   = 1;
 my ($fq, $fa);
 
 GetOptions(
     'nd'    => \$F_nodesc,
-    'i=s'  => \$fq,
-    'o=s'  => \$fa,
+    'np'    => \$F_rm_nonprint,
+    'i=s'   => \$fq,
+    'o=s'   => \$fa,
     'h'     => sub { usage() },
 );
 
@@ -73,6 +77,10 @@ while ( <$fh_fq> ) {
         my $seq = <$fh_fq>; # Read sequence line
         chomp($seq);
 
+        if ( $F_rm_nonprint ) {
+            $seq    =~ s/[^[:print:]]//g;
+        }
+
         say $fh_fa $seq;
     }
 }
@@ -105,8 +113,11 @@ Arguments:
   --nd:     Dismiss sequence description, i.e., contents after the first
             space.
             Optional. Default FALSE.
-  fastq:    Input FASTQ filename.
-  fasta:    Output FASTA filename. Optional.
+  --np      Remove non-printable characters, such as '\000' ('^@'), in 
+            sequence.
+            Optional. Default TRUE.
+  -i fastq  Input FASTQ filename.
+  -o fasta  Output FASTA filename. Optional.
 EOS
 }
 
