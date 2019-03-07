@@ -14,6 +14,7 @@
 =head1 VERSION
 
     0.0.1   2014-10-30
+    0.1.0   2019-03-07  New output method, output FASTA only. 
 
 =cut
 
@@ -23,17 +24,18 @@ use warnings;
 
 use Bio::AlignIO;
 use Getopt::Long;
+use File::Basename;
 
 use Smart::Comments;
 
 my $usage = << "EOS";
 Usage:
-  comb_alns.pl -t <format> [-m <format>] -o <outf> <file1> <file2> ...
+  comb_alns.pl [-t <format>] -o <outf> <file1> <file2> ...
 
 Options:
-  -t <format>   : Input file format
-  -m <format>   : Output file format. Always FASTA.
-  -o <outf>     : Output filename.
+  -t <format>   Input file format.
+                Optional. Default 'fasta'.
+  -o <outf>     Output filename.
 
 Arguments:
   <file1> <file2> ... : Input alignment files
@@ -52,23 +54,33 @@ EOS
 
 my ($fmt_in, $fmt_out, $fout);
 
-# $fmt_out    = 'fasta';
+$fmt_in     = 'fasta';
+$fmt_out    = 'fasta';
 
 GetOptions(
     "t=s"   => \$fmt_in,
-    "m=s"   => \$fmt_out,
+#    "m=s"   => \$fmt_out,
     "o=s"   => \$fout,
     "h"     => sub { die $usage }
 );
 
-$fmt_out    = 'fasta';
-
 die $usage unless ( $fmt_in && $fout );
 
-my %aln_seqs;
+# my %aln_seqs;
+my %alns;    # Hash stores hash reference for each input flie
+my %seq_ids; # Hash store all *unique* sequence ids in each input file
+             # in case there were missing sequences in an alignment.
+my %aln_len; # Hash store length of alignment in each input file
 
 for my $fin ( @ARGV ) {
-    say "Parsing $fin ...";
+    say "Parsing '$fin' ...";
+
+    # Parse filename
+    my ($fname, $dir, $suffix)   = fileparse($fin, qr/\..*$/);
+
+    my $aln_id  = $fname;
+
+    my %seqs;
 
     my $o_alni  = Bio::AlignIO->new(
         -file   => $fin,
@@ -77,16 +89,26 @@ for my $fin ( @ARGV ) {
 
     my $o_aln   = $o_alni->next_aln;
 
+    unless ($o_aln->is_flush) {
+        die "[ERROR] Sequence length in alignment file '$fin' are NOT identical!\n";
+    }
+
+    # Get the length of alignment
+    $aln_len{ $aln_id }  = $o_aln->length;
+
     for my $o_seq ( $o_aln->each_seq ) {
         my $id  = $o_seq->id;
         my $seq = $o_seq->seq;
 
-        $aln_seqs{ $id }    .= $seq;
+        #$aln_seqs{ $id }    .= $seq;
+        $seq_ids{ $id }++;
+        
+        $alns{ $aln_id }->{ $id }    = $seq;
     }
 }
 
-# %aln_seqs
-
+# {{{
+=pod
 # Output alignment
 # Output Bio::Align::AlignO object
 my $o_alno  = Bio::AlignIO->new(
@@ -106,11 +128,40 @@ for my $id ( sort ( keys %aln_seqs ) ) {
     $o_aln->add_seq( $o_seq );
 }
 
-### $o_aln
-
 $o_alno->write_aln( $o_aln );
 
 say "[OK] All files combined and output as a FASTA alignment file!";
 
 exit;
+=cut
+# }}}
 
+# Output alignment if FASTA format
+my %aln_out;
+
+
+for my $seq_id ( sort keys %seq_ids ) {
+    for my $aln_id ( sort keys %alns ) {
+        my $seq;
+
+        if ( exists $alns{ $aln_id }->{ $seq_id} ) {
+            $seq    = $alns{ $aln_id }->{ $seq_id };
+        }
+        else {  # Sequence NOT exist in alignment
+            warn "[WARN] '$seq_id' NOT exist in alignment '$aln_id'! Fill with '-'.";
+            $seq    = '-' x $aln_len{ $aln_id };
+        }
+
+        $aln_out{ $seq_id } .= $seq;
+    }
+}
+
+open my $fh_out, ">", $fout
+    or die "[ERROR] Create output file '$fout' failed!\n\$!\n";
+
+for my $seq_id ( sort keys %aln_out ) {
+    say $fh_out '>', $seq_id;
+    say $fh_out $aln_out{ $seq_id };
+}
+
+close $fh_out;
