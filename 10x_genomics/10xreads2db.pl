@@ -48,6 +48,8 @@
 =head1 VERSION
 
     0.0.1   - 2019-03-26
+    0.0.2   - 2019-03-28    Support host, port, user and pwd.
+                            Bug fix.
 
 =cut
 
@@ -81,11 +83,19 @@ my $num_reads   = 0;        # Number of inserted reads
 
 my ($fread1, $fread2, $db);
 
+my $host    = '127.0.0.1';
+my $port    = '27017';
+my ($user, $pwd);
+
 GetOptions(
-    "i=s"   => \$fread1,
-    "j=s"   => \$fread2,
-    "d=s"   => \$db,
-    "h"     => sub { die usage() },
+    "i=s"       => \$fread1,
+    "j=s"       => \$fread2,
+    "d=s"       => \$db,
+    "host=s"    => \$host,
+    "port=s"    => \$port,
+    "user"      => \$user,
+    "pwd"       => \$pwd,
+    "h"         => sub { die usage() },
 );
 
 unless ( $fread1 and $fread2 and $db) {
@@ -101,7 +111,9 @@ my $rh_cbs  = load_cbs($f_cb);
 my @cbs     = sort keys %{ $rh_cbs };
 
 # Connect to local MongoDB w/ default port
-my $mongo_client    = MongoDB->connect();
+my $mongo_client    = MongoDB->connect(
+    "mongodb://" . $host . ':' . $port
+);
 
 # Create database
 my $mongo_db    = $mongo_client->get_database( $db );
@@ -171,6 +183,10 @@ Args:
   -i <R1>:  Read1 file
   -j <R2>:  Read2 file
   -d <db>:  MongoDB name to be created.
+  --host:   MongoDB server hostname or IP address. Default 127.0.0.1.
+  --port:   MongoDB server port. Default 27017.
+  --user:   MongoDB server user account.
+  --pwd:    MongoDB server user password.
 Note:
   Both plain text and gzipped FASTQ format were supported.
 EOS
