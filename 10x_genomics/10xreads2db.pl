@@ -50,6 +50,10 @@
     0.0.1   - 2019-03-26
     0.0.2   - 2019-03-28    Support host, port, user and pwd.
                             Bug fix.
+    0.0.3   - 2019-03-29    New field, 'qual_insert', for quality string
+                            of insert.
+                            Remove 'switch' field.
+                            Insert in bulk mode (insert_many)
 
 =cut
 
@@ -71,9 +75,7 @@ use Smart::Comments;
 #===========================================================
 
 my $f_cb        = "737K-august-2016.txt";   # 10x cell barcode file
-my $buffer_size = 10_000;   # Insert $buffer_size documents at one time
-my $num_reads   = 0;        # Number of inserted reads
-#my $found_cb    = 0;        # Number of reads with cell barcode
+my $pool_size   = 20_000;   # Insert $buffer_size documents at one time
 
 #===========================================================
 #
@@ -129,8 +131,8 @@ warn "[NOTE] Working on read file: '", $fread2, "\n";
 operate_reads($coll_reads, $fread2);
 
 # Create index
-# Index for 'seq_id'
-# $coll_reads->ensure_index({'seq_id' => 1});
+# Index for 'read_id'
+# $coll_reads->ensure_index({'read_id' => 1});
 # Index for cell barcode
 # $coll_reads->ensure_index({'cb' => 1});
 # Index for umi
@@ -143,7 +145,7 @@ operate_reads($coll_reads, $fread2);
 my $indexes = $coll_reads->indexes;
 
 my @idx_names  = $indexes->create_many(
-    { keys => [ 'seq_id' => 1 ] },
+    { keys => [ 'read_id' => 1 ] },
     { keys => [ 'cb' => 1 ] },
     { keys => [ 'umi' => 1 ] },
     { keys => [ 'cb_exist' => 1 ] },
@@ -300,6 +302,9 @@ sub operate_reads {
 
     my $fh_reads;
 
+    my @docs_pool;              # Buffer for insert_many
+    my $num_docs_in_pool= 0;    # Number of docs in pool
+
     if ($freads =~ /\.(?:fq|fastq)$/) {    # A FASTQ file
         open $fh_reads, "<", $freads or
             die "[ERROR] Open reads file '$freads' failed!\n$!\n";
@@ -321,8 +326,8 @@ sub operate_reads {
         chomp;
         
         if (/^@(\S+?)\s+(\S+?)$/) { # Seq ID line
-            my $seq_id      = $1;
-            my $seq_desc    = $2;
+            my $read_id      = $1;
+            my $read_desc    = $2;
 
             $num_total_reads++;
 
@@ -330,34 +335,35 @@ sub operate_reads {
             # Read number:  $read_num
             # Sample index: $sample_idx
             my ($read_num, $is_filtered, $ctl_num, $sample_idx)
-                = split /:/, $seq_desc;
+                = split /:/, $read_desc;
             
-            my $seq_str     = <$fh_reads>;
-            chomp($seq_str);
+            my $read_str     = <$fh_reads>;
+            chomp($read_str);
 
-            $seq_str        = uc $seq_str;  # Convert to uppercase
+            $read_str        = uc $read_str;  # Convert to uppercase
 
-            my $read_len    = length($seq_str);
+            my $read_len    = length($read_str);
             
-            my $opt_seq_id  = <$fh_reads>;
-            chomp($opt_seq_id);
+            my $opt_read_id  = <$fh_reads>; # Optional read ID
+            chomp($opt_read_id);
             
-            unless ($opt_seq_id =~ /^\+/) {
-                warn "[WARNING] May be not FASTQ format for '$seq_id'\n";
+            unless ($opt_read_id =~ /^\+/) {
+                warn "[WARNING] May be not FASTQ format for '$read_id'\n";
                 next;
             }
                                 
-            my $seq_qual    = <$fh_reads>;
-            chomp($seq_qual);
+            my $read_qual    = <$fh_reads>;
+            chomp($read_qual);
 
             if ($read_len >= 150) {  # V(D)J Enriched Library
                 if ($read_num == 1) {   # Read #1
-                    #$seq_str    =~ s/^N*//; # Remove possible leading N
+                    my $cb      = substr $read_str, 0, 16;
+                    my $umi     = substr $read_str, 16, 10;
+                    my $switch  = substr $read_str, 26, 13;
+                    my $insert  = substr $read_str, 39;
 
-                    my $cb      = substr $seq_str, 0, 16;
-                    my $umi     = substr $seq_str, 16, 10;
-                    my $switch  = substr $seq_str, 26, 13;
-                    my $insert  = substr $seq_str, 39;
+                    # Insert quality
+                    my $ins_qual= substr $read_qual, 39;
 
                     # $cb         = uc $cb;   # Convert to upper case
 
@@ -371,29 +377,6 @@ sub operate_reads {
                             = correct_cb($cb, \@cbs);
 
                         $num_corr_cbs++ if ($cb_exist == 1);
-
-# {{{
-=pod
-                        my $corr_cb = correct_cb($cb, \@cbs);
-
-                        if ($corr_cb == 0) {
-                            warn "[NOTE] Cell barcode '", $cb , 
-                                "' not found\n";
-
-                            $cb_exist   = 0;
-                        }
-                        elsif ($corr_cb > 1) {
-                            warn "[NOTE] Found multiple matches for Cell ",
-                                "barcode '", $cb, "'.\n";
-
-                            $cb_exist   = $corr_cb;
-                        }
-                        else {
-                            $cb         = $corr_cb; # use correction
-                            $cb_exist   = 1;
-                        }
-=cut
-# }}}
                     }
                     else {
                         (exists $rh_cbs->{$cb}) ? 
@@ -401,10 +384,12 @@ sub operate_reads {
                             $cb_exist = 1 : $cb_exist = 0;
                     }
                     
+# {{{
+=pod
                     $coll->insert_one( {
-                        'seq_id'        => $seq_id,
-                        'seq_desc'      => $seq_desc,
-                        'seq'           => $seq_str,
+                        'read_id'       => $read_id,
+                        'read_desc'     => $read_desc,
+                        'read'          => $read_str,
                         'cell_barcode'  => $corr_cb,
                         'cb_exist'      => $cb_exist,
                         'umi'           => $umi,
@@ -412,54 +397,105 @@ sub operate_reads {
                         'insert'        => $insert,
                         'read_num'      => $read_num,
                         'sample_idx'    => $sample_idx,
-                        'quality'       => $seq_qual,
+                        'read_qual'     => $read_qual,
+                        'ins_qual'      => $ins_qual,
                     } );
 
                     $num_ins_reads++;
-                }
-                elsif ($read_num == 2)  {   # Read #2
-                    #$seq_str    =~ s/^N*//;
-
-                    $coll->insert_one( {
-                        'seq_id'        => $seq_id,
-                        'seq_desc'      => $seq_desc,
-                        'seq'           => $seq_str,
-                        'insert'        => $seq_str,
+=cut
+# }}}
+                    push @docs_pool, {
+                        'read_id'       => $read_id,
+                        'read_desc'     => $read_desc,
+                        'read'          => $read_str,
+                        'cell_barcode'  => $corr_cb,
+                        'cb_exist'      => $cb_exist,
+                        'umi'           => $umi,
+                      # 'switch'        => $switch,
+                        'insert'        => $insert,
                         'read_num'      => $read_num,
                         'sample_idx'    => $sample_idx,
-                        'quality'       => $seq_qual,
+                        'read_qual'     => $read_qual,
+                        'ins_qual'      => $ins_qual,                   
+                    };
+
+                    $num_docs_in_pool++;
+                }
+                elsif ($read_num == 2)  {   # Read #2
+#{{{
+=pod
+                    $coll->insert_one( {
+                        'read_id'       => $read_id,
+                        'read_desc'     => $read_desc,
+                        'read'          => $read_str,
+                        'insert'        => $read_str,
+                        'read_num'      => $read_num,
+                        'sample_idx'    => $sample_idx,
+                        'read_qual'     => $read_qual,
+                        'ins_qual'      => $read_qual,
                     } );
 
                     $num_ins_reads++;
+=cut
+# }}}
+                    push @docs_pool, {
+                        'read_id'       => $read_id,
+                        'read_desc'     => $read_desc,
+                        'read'          => $read_str,
+                        'insert'        => $read_str,
+                        'read_num'      => $read_num,
+                        'sample_idx'    => $sample_idx,
+                        'read_qual'     => $read_qual,
+                        'ins_qual'      => $read_qual,                   
+                    };
+
+                    $num_docs_in_pool++;
                 }
                 else {
                     warn "[ERROR] Impossible read number: '$read_num'",
-                        "for '$seq_id'\n";
+                        "for '$read_id'\n";
                     next;
                 }
             }
             elsif ($read_len >= 98 and $read_num == 2) {
                 # 5' Gene Expression Library, Read #2
-                #$seq_str    =~ s/^N*//;
 
+# {{{
+=pod
                 $coll->insert_one( {
-                    'seq_id'        => $seq_id,
-                    'seq_desc'      => $seq_desc,
-                    'seq'           => $seq_str,
-                    'insert'        => $seq_str,
+                    'read_id'       => $read_id,
+                    'read_desc'     => $read_desc,
+                    'read'          => $read_str,
+                    'insert'        => $read_str,
                     'read_num'      => $read_num,
                     'sample_idx'    => $sample_idx,
-                    'quality'       => $seq_qual,
+                    'read_qual'     => $read_qual,
+                    'ins_qual'      => $read_qual,
                 } );
 
                 $num_ins_reads++;
+=cut
+#}}}
+                push @docs_pool, {
+                    'read_id'       => $read_id,
+                    'read_desc'     => $read_desc,
+                    'read'          => $read_str,
+                    'insert'        => $read_str,
+                    'read_num'      => $read_num,
+                    'sample_idx'    => $sample_idx,
+                    'read_qual'     => $read_qual,
+                    'ins_qual'      => $read_qual,
+                };
+
+                $num_docs_in_pool++;
+
             }
             elsif ($read_len >= 26 and $read_num == 1) {
                 # 5' Gene Expression Library, Read #1
-                # $seq_str    =~ s/^N*//;
+                # $read_str    =~ s/^N*//;
 
-                my $cb  = substr $seq_str, 0, 16;
-                my $umi = substr $seq_str, 16;
+                my $cb  = substr $read_str, 0, 16;
+                my $umi = substr $read_str, 16;
                 # There is NO switch Oligo available
 
                 $cb             = uc $cb;
@@ -472,52 +508,46 @@ sub operate_reads {
                         = correct_cb($cb, \@cbs);
 
                     $num_corr_cbs++ if ($cb_exist == 1);
-
-# {{{
-=pod
-                    my $corr_cb = correct_cb($cb, \@cbs);
-
-                    if ($corr_cb == 0) {
-                        warn "[NOTE] Cell barcode '", $cb , 
-                            "' not found\n";
-
-                        $cb_exist   = 0;
-                    }
-                    elsif ($corr_cb > 1) {
-                        warn "[NOTE] Found multiple matches for Cell ",
-                            "barcode '", $cb, "'.\n";
-
-                        $cb_exist   = $corr_cb;
-                    }
-                    else {
-                        $cb         = $corr_cb; # use correction
-                        $cb_exist   = 1;
-                    }
-=cut
-# }}}
                 }
                 else {
                     (exists $rh_cbs->{$cb}) ? 
                         $cb_exist = 1 : $cb_exist = 0 ;
                 }
  
+# {{{
+=pod
                 $coll->insert_one( {
-                    'seq_id'        => $seq_id,
-                    'seq_desc'      => $seq_desc,
-                    'seq'           => $seq_str,
+                    'read_id'       => $read_id,
+                    'read_desc'     => $read_desc,
+                    'read'          => $read_str,
                     'cell_barcode'  => $corr_cb,
                     'cb_exist'      => $cb_exist,
                     'umi'           => $umi,
-                    'insert'        => '',
                     'read_num'      => $read_num,
                     'sample_idx'    => $sample_idx,
-                    'quality'       => $seq_qual,
+                    'read_qual'     => $read_qual,
                 } );
 
                 $num_ins_reads++;
+=cut
+# }}}
+
+                push @docs_pool, {
+                    'read_id'       => $read_id,
+                    'read_desc'     => $read_desc,
+                    'read'          => $read_str,
+                    'cell_barcode'  => $corr_cb,
+                    'cb_exist'      => $cb_exist,
+                    'umi'           => $umi,
+                    'read_num'      => $read_num,
+                    'sample_idx'    => $sample_idx,
+                    'read_qual'     => $read_qual,               
+                };
+
+                $num_docs_in_pool++;
             }
             else {
-                warn "[WARNING] Unidentified read '$seq_id' ",
+                warn "[WARNING] Unidentified read '$read_id' ",
                     "in Read #", $read_num, "\n",
                     "with length: ", $read_len, "\n";
             }
@@ -525,7 +555,27 @@ sub operate_reads {
         else {
             next;
         }
-        
+
+        # Pool full, insert into collection
+        if ($num_docs_in_pool == $pool_size) {
+            $coll_reads->insert_many(\@docs_pool);
+
+            $num_ins_reads      += $num_docs_in_pool;
+
+            $num_docs_in_pool   = 0;    # Reset counter
+            @docs_pool          = ();   # Reset pool
+        }
+    }
+
+    # If there are data in pool after EOF
+    # Insert them into collection
+    if ($num_docs_in_pool > 0) {
+        $coll_reads->insert_many(\@docs_pool);
+
+        $num_ins_reads      += $num_docs_in_pool;
+
+        $num_docs_in_pool   = 0;
+        @docs_pool          = ();
     }
     
     close $fh_reads;
