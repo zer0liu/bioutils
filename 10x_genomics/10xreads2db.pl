@@ -41,6 +41,29 @@
 
 * Insert:   98 bp
 
+=head2 Structure of collections
+
+=head3 Collection "reads"
+
+    Filed           Description
+    ----            ----
+    _id             ObjectId
+    cell_barcode    A string. Cell barcode of 10x sequencing.
+    cb_exist        An integer. Based on 10x '737K-august-2016.txt'.
+                    0   Not found.
+                    1   Only 1 match.
+                    >=2 Multiple match.
+    read            A string. Raw read sequence.
+    sample_idx      A string. Illumina sequencing sample index.
+    read_desc       A string. Read sequence description.
+    read_id         A string. Unique read sequence ID.
+    umi             A string. Unique molecular identifiers.
+    read_qual       A string. Quality scores for read sequence.
+    insert          A string. Insert sequence.
+    ins_qual        A string. Quality scores for insert sequence.
+    read_num        An integer. Read number for Illumina sequencing.
+                    must be 1 or 2.
+
 =head1 AUTHOR
 
     zeroliu-at-gmail-dot-com
@@ -54,6 +77,7 @@
                             of insert.
                             Remove 'switch' field.
                             Insert in bulk mode (insert_many)
+    0.0.4   - 2019-04-01    More details.
 
 =cut
 
