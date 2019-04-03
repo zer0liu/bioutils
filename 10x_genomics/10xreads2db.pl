@@ -78,6 +78,9 @@
                             Remove 'switch' field.
                             Insert in bulk mode (insert_many)
     0.0.4   - 2019-04-01    More details.
+    0.0.5   - 2019-04-03    Able to setup default values of:
+                            - connectTimeoutMS (connect_timeout_ms)
+                            - socketTimeoutMS (socket_timeout_ms)
 
 =cut
 
@@ -85,11 +88,9 @@ use 5.12.1;
 use strict;
 use warnings;
 
-#use boolean;
 use Getopt::Long;
 use IO::Zlib;
 use MongoDB;
-#use MongoDB::Indexing;
 use Smart::Comments;
 
 #===========================================================
@@ -100,6 +101,16 @@ use Smart::Comments;
 
 my $f_cb        = "737K-august-2016.txt";   # 10x cell barcode file
 my $pool_size   = 20_000;   # Insert $buffer_size documents at one time
+
+# The amount of time in milliseconds to wait for a new connection to 
+# a server.
+# Default: 10,000 ms
+my $connect_timeout_ms  = 10_000;
+
+# the amount of time in milliseconds to wait for a reply from the 
+# server before issuing a network exception.
+# Default: 30,000 ms
+my $socket_timeout_ms   = 120_000;
 
 #===========================================================
 #
@@ -138,7 +149,13 @@ my @cbs     = sort keys %{ $rh_cbs };
 
 # Connect to local MongoDB w/ default port
 my $mongo_client    = MongoDB->connect(
-    "mongodb://" . $host . ':' . $port
+    # "mongodb://" . $host . ':' . $port
+    "mongodb://" . $host,
+    {
+        port                => $port,
+        connect_timeout_ms  => $connect_timeout_ms,
+        socket_timeout_ms   => $socket_timeout_ms,
+    }
 );
 
 # Create database
@@ -148,24 +165,15 @@ my $mongo_db    = $mongo_client->get_database( $db );
 my $coll_reads  = $mongo_db->get_collection( 'reads' );
 
 # Rarse read files and insert into collection 'read'
+# Read 1
 warn "[NOTE] Working on read file: '", $fread1, "\n";
 operate_reads($coll_reads, $fread1);
 
+# Read 2
 warn "[NOTE] Working on read file: '", $fread2, "\n";
 operate_reads($coll_reads, $fread2);
 
 # Create index
-# Index for 'read_id'
-# $coll_reads->ensure_index({'read_id' => 1});
-# Index for cell barcode
-# $coll_reads->ensure_index({'cb' => 1});
-# Index for umi
-# $coll_reads->ensure_index({'umi' => 1});
-# Index for whether cell barcode exists
-#$coll_reads->ensure_index({'cb_exist' => 1});
-# Index for read #
-# $coll_reads->ensure_index({'read_num' => 1});
-
 my $indexes = $coll_reads->indexes;
 
 my @idx_names  = $indexes->create_many(
