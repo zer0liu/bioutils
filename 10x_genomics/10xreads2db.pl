@@ -105,12 +105,12 @@ my $pool_size   = 20_000;   # Insert $buffer_size documents at one time
 # The amount of time in milliseconds to wait for a new connection to 
 # a server.
 # Default: 10,000 ms
-my $connect_timeout_ms  = 10_000;
+my $connect_timeout_ms  = 10_000;   # i.e., 10 s
 
 # the amount of time in milliseconds to wait for a reply from the 
 # server before issuing a network exception.
 # Default: 30,000 ms
-my $socket_timeout_ms   = 120_000;
+my $socket_timeout_ms   = 120_000;  # i.e., 120 s
 
 #===========================================================
 #
@@ -148,6 +148,9 @@ my $rh_cbs  = load_cbs($f_cb);
 my @cbs     = sort keys %{ $rh_cbs };
 
 # Connect to local MongoDB w/ default port
+say "[NOTE] Connecting to '$host:$port'.";
+
+=pod
 my $mongo_client    = MongoDB->connect(
     # "mongodb://" . $host . ':' . $port
     "mongodb://" . $host,
@@ -156,6 +159,14 @@ my $mongo_client    = MongoDB->connect(
         connect_timeout_ms  => $connect_timeout_ms,
         socket_timeout_ms   => $socket_timeout_ms,
     }
+);
+=cut
+
+my $mongo_client    = MongoDB::MongoClient->new(
+    host                => "mongodb://$host",
+    port                => $port,
+    connect_timeout_ms  => $connect_timeout_ms,
+    socket_timeout_ms   => $socket_timeout_ms,
 );
 
 # Create database
