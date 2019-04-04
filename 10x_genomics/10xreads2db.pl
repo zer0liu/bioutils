@@ -212,15 +212,16 @@ sub usage {
     say << 'EOS';
 Parse and import 10x reads into a MongoDB database.
 Usage:
-  10xreads2db.pl -i <R1> -j <R2> -d <db>
+  10xreads2db.pl -i <R1> -j <R2> -d <db> [--host <host>] [--port <port>]
+                    [--user <user>] [--pwd <pwd>]
 Args:
   -i <R1>:  Read1 file
   -j <R2>:  Read2 file
   -d <db>:  MongoDB name to be created.
   --host:   MongoDB server hostname or IP address. Default 127.0.0.1.
   --port:   MongoDB server port. Default 27017.
-  --user:   MongoDB server user account.
-  --pwd:    MongoDB server user password.
+  --user:   MongoDB server user account. Optional.
+  --pwd:    MongoDB server user password. Optional.
 Note:
   Both plain text and gzipped FASTQ format were supported.
 EOS
