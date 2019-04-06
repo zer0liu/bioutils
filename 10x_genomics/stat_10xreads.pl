@@ -77,10 +77,10 @@ my $mongo_client    = MongoDB::MongoClient->new(
 );
 
 # Get given database
-my $mongo_db  = $mongo_client->get_databasea( $db );
+my $mongo_db  = $mongo_client->get_database( $db );
 
 # Number of reads by cell barcide
-my $cb_out  = $mongo_db->get_collection('reads')->aggregaate(
+my $cb_out  = $mongo_db->get_collection('reads')->aggregate(
     [
         { 
             '$match'    => { 'read_num' => 1 } 
