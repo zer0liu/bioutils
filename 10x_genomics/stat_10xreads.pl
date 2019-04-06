@@ -65,7 +65,7 @@ GetOptions(
 
 unless ($db) {
     warn "[ERROR] Database name is required!\n";
-    die $usage();
+    die usage();
 }
 
 # Connect to database
@@ -77,10 +77,10 @@ my $mongo_client    = MongoDB::MongoClient->new(
 );
 
 # Get given database
-my $db  = $mongo_client->get_databasea( $db );
+my $mongo_db  = $mongo_client->get_databasea( $db );
 
 # Number of reads by cell barcide
-my $cb_out  = $db->get_collection('reads')->aggregaate(
+my $cb_out  = $mongo_db->get_collection('reads')->aggregaate(
     [
         { 
             '$match'    => { 'read_num', 1 } 
