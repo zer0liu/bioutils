@@ -163,7 +163,8 @@ my $mongo_client    = MongoDB->connect(
 =cut
 
 my $mongo_client    = MongoDB::MongoClient->new(
-    host                => "mongodb://$host",
+    #host                => "mongodb://$host",
+    host                => $host,
     port                => $port,
     connect_timeout_ms  => $connect_timeout_ms,
     socket_timeout_ms   => $socket_timeout_ms,
