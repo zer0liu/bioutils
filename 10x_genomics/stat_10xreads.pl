@@ -57,9 +57,9 @@ my ($db, $user, $pwd);
 GetOptions(
     "d=s"       => \$db,
     "host=s"    => \$host,
-    "port"      => \$port,
-    "user"      => \$user,
-    "pwd"       => \$pwd,
+    "port=s"    => \$port,
+    "user=s"    => \$user,
+    "pwd=s"     => \$pwd,
     "h"         => sub { die usage() },
 );
 
