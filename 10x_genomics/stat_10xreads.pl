@@ -97,9 +97,19 @@ my $cb_out  = $mongo_db->get_collection('reads')->aggregaate(
     ]
 );
 
+# Output result to txt file.
+my $f_cb_stat   = 'cb_stat.txt';
+
+open my $fh_out, ">", $f_cb_stat or
+    die "[ERROR] Create output file '$f_cb_stat' failed!\n$!\n";
+
+say $fh_out join "\t", qw(Barcode Reads_number);
+
 while (my $doc = $cb_out->next) {
-    ### $doc
+    say join "\t", ( $doc->{'_id'}, $doc->{'num_reads'} );
 }
+
+close $fh_out;
 
 #===========================================================
 #
