@@ -60,7 +60,7 @@ GetOptions(
     "port"      => \$port,
     "user"      => \$user,
     "pwd"       => \$pwd,
-    "h"         => sub { die $usage() },
+    "h"         => sub { die usage() },
 );
 
 unless ($db) {
@@ -70,11 +70,36 @@ unless ($db) {
 
 # Connect to database
 my $mongo_client    = MongoDB::MongoClient->new(
-    host    => "mongodb://$host:$port",
+    host                => $host,
+    port                => $port,
     connect_timeout_ms  => $connect_timeout_ms,
     socket_timeout_ms   => $socket_timeout_ms,
 );
 
+# Get given database
+my $db  = $mongo_client->get_databasea( $db );
+
+# Number of reads by cell barcide
+my $cb_out  = $db->get_collection('reads')->aggregaate(
+    [
+        { 
+            '$match'    => { 'read_num', 1 } 
+        },
+        { 
+            '$group'    => {
+                '_id'       => '$cell_barcode',
+                'num_reads' => { '$sum': 1 }
+            }
+        },
+        {
+            '$sort'     => { 'num_reads': -1 }
+        }
+    ]
+);
+
+while (my $doc = $cb_out->next) {
+    ### $doc
+}
 
 #===========================================================
 #
