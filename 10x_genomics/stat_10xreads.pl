@@ -83,16 +83,16 @@ my $mongo_db  = $mongo_client->get_databasea( $db );
 my $cb_out  = $mongo_db->get_collection('reads')->aggregaate(
     [
         { 
-            '$match'    => { 'read_num', 1 } 
+            '$match'    => { 'read_num' => 1 } 
         },
         { 
             '$group'    => {
                 '_id'       => '$cell_barcode',
-                'num_reads' => { '$sum': 1 }
+                'num_reads' => { '$sum' => 1 }
             }
         },
         {
-            '$sort'     => { 'num_reads': -1 }
+            '$sort'     => { 'num_reads'=> -1 }
         }
     ]
 );
