@@ -79,7 +79,9 @@ my $mongo_client    = MongoDB::MongoClient->new(
 # Get given database
 my $mongo_db  = $mongo_client->get_database( $db );
 
-# Number of reads by cell barcide
+# Number of reads by Cell barcode
+say "[NOTE] Statistics of Cell Barcodes ...";
+
 my $cb_out  = $mongo_db->get_collection('reads')->aggregate(
     [
         { 
@@ -98,15 +100,50 @@ my $cb_out  = $mongo_db->get_collection('reads')->aggregate(
 );
 
 # Output result to txt file.
-my $f_cb_stat   = 'cb_stat.txt';
+my $f_out   = 'cb_stat.txt';
 
-open my $fh_out, ">", $f_cb_stat or
-    die "[ERROR] Create output file '$f_cb_stat' failed!\n$!\n";
+open my $fh_out, ">", $f_out or
+    die "[ERROR] Create output file '$f_out' failed!\n$!\n";
 
 say $fh_out join "\t", qw(Barcode Reads_number);
 
 while (my $doc = $cb_out->next) {
-    say join "\t", ( $doc->{'_id'}, $doc->{'num_reads'} );
+    say $fh_out join "\t", ( $doc->{'_id'}, $doc->{'num_reads'} );
+}
+
+close $fh_out;
+
+# Number of reads by cell barcide and UMI
+say "[NOTE] Statistics of Cell Barcodes and UMI ...";
+
+my $cb_umi_out  = $mongodb->get_collection('reads')->aggregate(
+    [
+        { 
+            '$match'    => { 'read_num' => 1 } 
+        },
+        {
+            '$group'    => {
+                '_id'       => {
+                    'cb'        => '$cell_barcode',
+                    'umi'       => '$umi'
+                },
+                'num_reads' => { '$sum' => 1 }
+            }, 
+            '$sort'     => { 'num_reads' => -1 }
+        },
+    ]
+);
+
+$f_out  = 'cb_umi_stat.txt';
+
+open $fh_out, ">", $f_out or
+    die "[ERROR] Create output file '$f_out' failed!\n$!\n";
+
+say $fh_out join "\t", qw(Barcode UMI Reads_number);
+
+while ($doc = $cb_out->next) {
+    ### $doc
+    # say $fh_out join "\t", ( $doc->{'_id'}, $doc->{'num_reads'} );
 }
 
 close $fh_out;
