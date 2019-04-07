@@ -133,7 +133,7 @@ my $cb_umi_out  = $mongo_db->get_collection('reads')->aggregate(
         {
             '$sort'     => { 'num_reads' => -1 }
         },
-    ]
+    ],  { allowDiskUse: true }
 );
 
 $f_out  = 'cb_umi_stat.txt';
