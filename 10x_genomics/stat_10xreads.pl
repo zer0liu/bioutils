@@ -116,7 +116,7 @@ close $fh_out;
 # Number of reads by cell barcide and UMI
 say "[NOTE] Statistics of Cell Barcodes and UMI ...";
 
-my $cb_umi_out  = $mongodb->get_collection('reads')->aggregate(
+my $cb_umi_out  = $mongo_db->get_collection('reads')->aggregate(
     [
         { 
             '$match'    => { 'read_num' => 1 } 
@@ -141,7 +141,7 @@ open $fh_out, ">", $f_out or
 
 say $fh_out join "\t", qw(Barcode UMI Reads_number);
 
-while ($doc = $cb_out->next) {
+while (my $doc = $cb_out->next) {
     ### $doc
     # say $fh_out join "\t", ( $doc->{'_id'}, $doc->{'num_reads'} );
 }
