@@ -128,7 +128,9 @@ my $cb_umi_out  = $mongo_db->get_collection('reads')->aggregate(
                     'umi'       => '$umi'
                 },
                 'num_reads' => { '$sum' => 1 }
-            }, 
+            },
+        },
+        {
             '$sort'     => { 'num_reads' => -1 }
         },
     ]
