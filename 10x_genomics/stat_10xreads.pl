@@ -23,6 +23,7 @@ use 5.12.1;
 use strict;
 use warnings;
 
+use boolean;
 use Getopt::Long;
 use MongoDB;
 use Smart::Comments;
@@ -133,7 +134,7 @@ my $cb_umi_out  = $mongo_db->get_collection('reads')->aggregate(
         {
             '$sort'     => { 'num_reads' => -1 }
         },
-    ],  { allowDiskUse: true }
+    ],  { 'allowDiskUse' => true }
 );
 
 $f_out  = 'cb_umi_stat.txt';
