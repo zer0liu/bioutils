@@ -81,6 +81,10 @@
     0.0.5   - 2019-04-03    Able to setup default values of:
                             - connectTimeoutMS (connect_timeout_ms)
                             - socketTimeoutMS (socket_timeout_ms)
+    0.1.0   - 2019-04-08    Bug fix:
+                            - Cell barcode string not inserted
+                            - Optimize detect cell barcode in 10x 
+                              repository.
 
 =cut
 
@@ -142,25 +146,15 @@ unless ( $fread1 and $fread2 and $db) {
 
 # Load 10x cell barcodes into a hash
 warn "[NOTE] Loading 10x cell barcodes ...\n";
-my $rh_cbs  = load_cbs($f_cb);
+my $ra_cbs  = load_cbs($f_cb);
+
+# my $rh_cbs  = load_cbs($f_cb);
 
 # All cell barcodes into an array
-my @cbs     = sort keys %{ $rh_cbs };
+# my @cbs     = sort keys %{ $rh_cbs };
 
 # Connect to local MongoDB w/ default port
 say "[NOTE] Connecting to '$host:$port'.";
-
-=pod
-my $mongo_client    = MongoDB->connect(
-    # "mongodb://" . $host . ':' . $port
-    "mongodb://" . $host,
-    {
-        port                => $port,
-        connect_timeout_ms  => $connect_timeout_ms,
-        socket_timeout_ms   => $socket_timeout_ms,
-    }
-);
-=cut
 
 my $mongo_client    = MongoDB::MongoClient->new(
     #host                => "mongodb://$host",
@@ -178,11 +172,11 @@ my $coll_reads  = $mongo_db->get_collection( 'reads' );
 
 # Rarse read files and insert into collection 'read'
 # Read 1
-warn "[NOTE] Working on read file: '", $fread1, "\n";
+warn "[NOTE] Working on read file: '", $fread1, "'\n";
 operate_reads($coll_reads, $fread1);
 
 # Read 2
-warn "[NOTE] Working on read file: '", $fread2, "\n";
+warn "[NOTE] Working on read file: '", $fread2, "'\n";
 operate_reads($coll_reads, $fread2);
 
 # Create index
@@ -249,6 +243,8 @@ EOS
 
 =cut
 
+#{{{
+=comment
 sub load_cbs {
     my ($fcbs)  = @_;
     
@@ -271,22 +267,49 @@ sub load_cbs {
     
     return \%cbs;
 }
+=cut
+#}}}
+
+sub load_cbs {
+    my ($fcbs)  = @_;
+    
+    my @cbs;
+
+    open my $fh_cbs, "<", $fcbs or
+        die "[ERROR] Open 10x Cell Barcodes file '$fcbs' failed!\n$!\n";
+        
+    while (<$fh_cbs>) {
+        next if /^#/;
+        next if /^\s*$/;
+        chomp;
+        
+        my $cb = $_;
+        
+        push @cbs, $cb;
+    }
+        
+    close $fh_cbs;
+    
+    return \@cbs;
+}
 
 =pod
 
   Name:     correct_cb
   Usage:    correct_cb($cb, $ra_cbs)
-  Function: Correct cell barcodes with 1 mis-base
+  Function: Correct a cell barcode with if necessary, and identify whether
+            this cell barcode is 10x certified.
   Args:     $cb     A string, cell barcode to be corrected
             $ra_cbs An array reference, for all pre-defined barcodes
   Return:   A list of 2 items:
             1st item:   An integer, number of found cell barcodes.
                         0:  Not found, or w/ 2 or more mismatches
-                        1:  Found only 1
+                        1:  Found 1 and only 1
                         2 or more:  Number of found barcodes
             2nd item:   A string, for cell barcode.
-                        if 1st item == 1, corrected cell barcode
-                        else, original barcode
+                        - If there were 2 or more 'N' found, here is the 
+                          original string (i.e., not corrected).
+                        - Otherwise, original or corrected barcode string.
 
 =cut
 
@@ -294,30 +317,23 @@ sub correct_cb {
     my ($cb, $ra_cbs)   = @_;
 
     my $raw_cb  = $cb;
-
-    my $num_mis = $cb =~ s/[^ACGT]/\./; # Convert cb to a regex
-
-    ## $cb
-
     my $num_cbs = 0;    # Number of found cell barcodes
 
-    if ($num_mis > 1) { # If mismatch bases number > 1
-        return ($num_cbs, $raw_cb); # No cell barcode found,
-                                    # return original cell barcode string
+    if ($cb =~ /[^ACGT]/) { # Found mismatch base, typically 'N'
+	    my $num_mis = $cb =~ s/[^ACGT]/\./; # Convert cb to a regex
+	
+	    if ($num_mis > 1) { # If mismatch bases number > 1
+	        return (0, $raw_cb); # No cell barcode available,
+	                                    # return raw cell barcode string
+	    }
     }
 
+    # Get the number of $cb in given 10x cell barcodes repository
     my @results = grep /$cb/, @{ $ra_cbs };
-
-    ## @results
 
     $num_cbs    = scalar @results;
 
-    # Not found or match more than once
-    # return $num_res unless ($num_res = 1);   
-
-    # return $results[0];
-
-    if ($num_cbs == 1) {    # Found only one cell barcode
+    if ($num_cbs == 1) {    # Match only one cell barcode
         my $corr_cb = $results[0];
 
         return ($num_cbs, $corr_cb);    # Return corrected cb
@@ -374,6 +390,8 @@ sub operate_reads {
             my $read_id      = $1;
             my $read_desc    = $2;
 
+            ## $read_id
+
             $num_total_reads++;
 
             # Parse sequence description, get:
@@ -400,12 +418,21 @@ sub operate_reads {
             my $read_qual    = <$fh_reads>;
             chomp($read_qual);
 
+            ## $read_str
+            ## $read_len
+            ## $read_qual
+
             if ($read_len >= 150) {  # V(D)J Enriched Library
                 if ($read_num == 1) {   # Read #1
                     my $cb      = substr $read_str, 0, 16;
                     my $umi     = substr $read_str, 16, 10;
                     my $switch  = substr $read_str, 26, 13;
                     my $insert  = substr $read_str, 39;
+
+                    ## $cb
+                    ## $umi
+                    ## $switch
+                    ## $insert
 
                     # Insert quality
                     my $ins_qual= substr $read_qual, 39;
@@ -415,6 +442,13 @@ sub operate_reads {
                     my $cb_exist=0;
                     my $corr_cb = '';
 
+                    ($cb_exist, $corr_cb)   = correct_cb($cb, $ra_cbs);
+
+                    ## $cb_exist
+                    ## $corr_cb
+
+# {{{
+=pod
                     if ($cb =~ /[^ACGT]/) { # Other base except ACGT found
                         # say "Found misc base: '$cb'";
 
@@ -424,36 +458,19 @@ sub operate_reads {
                         $num_corr_cbs++ if ($cb_exist == 1);
                     }
                     else {
-                        (exists $rh_cbs->{$cb}) ? 
+                        ($rh_cbs->{$cb}) ? 
                             # $cb_exist = true : $cb_exist = false;
-                            $cb_exist = 1 : $cb_exist = 0;
+                            ($cb_exist = 1) : ($cb_exist = 0);
                     }
-                    
-# {{{
-=pod
-                    $coll->insert_one( {
-                        'read_id'       => $read_id,
-                        'read_desc'     => $read_desc,
-                        'read'          => $read_str,
-                        'cell_barcode'  => $corr_cb,
-                        'cb_exist'      => $cb_exist,
-                        'umi'           => $umi,
-                        'switch'        => $switch,
-                        'insert'        => $insert,
-                        'read_num'      => $read_num,
-                        'sample_idx'    => $sample_idx,
-                        'read_qual'     => $read_qual,
-                        'ins_qual'      => $ins_qual,
-                    } );
-
-                    $num_ins_reads++;
 =cut
-# }}}
+#}}}
+                    
                     push @docs_pool, {
                         'read_id'       => $read_id,
                         'read_desc'     => $read_desc,
                         'read'          => $read_str,
-                        'cell_barcode'  => $corr_cb,
+                      # 'cell_barcode'  => $corr_cb,
+                        'cell_barcode'  => $cb,
                         'cb_exist'      => $cb_exist,
                         'umi'           => $umi,
                       # 'switch'        => $switch,
@@ -467,22 +484,6 @@ sub operate_reads {
                     $num_docs_in_pool++;
                 }
                 elsif ($read_num == 2)  {   # Read #2
-#{{{
-=pod
-                    $coll->insert_one( {
-                        'read_id'       => $read_id,
-                        'read_desc'     => $read_desc,
-                        'read'          => $read_str,
-                        'insert'        => $read_str,
-                        'read_num'      => $read_num,
-                        'sample_idx'    => $sample_idx,
-                        'read_qual'     => $read_qual,
-                        'ins_qual'      => $read_qual,
-                    } );
-
-                    $num_ins_reads++;
-=cut
-# }}}
                     push @docs_pool, {
                         'read_id'       => $read_id,
                         'read_desc'     => $read_desc,
@@ -505,22 +506,6 @@ sub operate_reads {
             elsif ($read_len >= 98 and $read_num == 2) {
                 # 5' Gene Expression Library, Read #2
 
-# {{{
-=pod
-                $coll->insert_one( {
-                    'read_id'       => $read_id,
-                    'read_desc'     => $read_desc,
-                    'read'          => $read_str,
-                    'insert'        => $read_str,
-                    'read_num'      => $read_num,
-                    'sample_idx'    => $sample_idx,
-                    'read_qual'     => $read_qual,
-                    'ins_qual'      => $read_qual,
-                } );
-
-                $num_ins_reads++;
-=cut
-#}}}
                 push @docs_pool, {
                     'read_id'       => $read_id,
                     'read_desc'     => $read_desc,
@@ -548,9 +533,13 @@ sub operate_reads {
                 my $cb_exist    = 0;
                 my $corr_cb     = '';
 
+                ($cb_exist, $corr_cb)   = correct_cb($cb, $ra_cbs);
+
+#{{{
+=comment
                 if ($cb =~ /[^ACGT]/) { # Other base except ACGT found
                     ($cb_exist, $corr_cb)
-                        = correct_cb($cb, \@cbs);
+                        = correct_cb($cb, $ra_cbs);
 
                     $num_corr_cbs++ if ($cb_exist == 1);
                 }
@@ -558,25 +547,9 @@ sub operate_reads {
                     (exists $rh_cbs->{$cb}) ? 
                         $cb_exist = 1 : $cb_exist = 0 ;
                 }
- 
-# {{{
-=pod
-                $coll->insert_one( {
-                    'read_id'       => $read_id,
-                    'read_desc'     => $read_desc,
-                    'read'          => $read_str,
-                    'cell_barcode'  => $corr_cb,
-                    'cb_exist'      => $cb_exist,
-                    'umi'           => $umi,
-                    'read_num'      => $read_num,
-                    'sample_idx'    => $sample_idx,
-                    'read_qual'     => $read_qual,
-                } );
-
-                $num_ins_reads++;
 =cut
-# }}}
-
+#}}}
+ 
                 push @docs_pool, {
                     'read_id'       => $read_id,
                     'read_desc'     => $read_desc,
@@ -600,6 +573,8 @@ sub operate_reads {
         else {
             next;
         }
+
+        ### $num_docs_in_pool
 
         # Pool full, insert into collection
         if ($num_docs_in_pool == $pool_size) {
