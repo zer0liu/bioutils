@@ -574,7 +574,7 @@ sub operate_reads {
             next;
         }
 
-        ### $num_docs_in_pool
+        ## $num_docs_in_pool
 
         # Pool full, insert into collection
         if ($num_docs_in_pool == $pool_size) {
