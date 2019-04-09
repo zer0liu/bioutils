@@ -85,6 +85,8 @@
                             - Cell barcode string not inserted
                             - Optimize detect cell barcode in 10x 
                               repository.
+    0.1.1   - 2019-04-09    Optimize barcode search.
+                            Now use hash, instead of grep an array.
 
 =cut
 
@@ -146,12 +148,11 @@ unless ( $fread1 and $fread2 and $db) {
 
 # Load 10x cell barcodes into a hash
 warn "[NOTE] Loading 10x cell barcodes ...\n";
-my $ra_cbs  = load_cbs($f_cb);
 
-# my $rh_cbs  = load_cbs($f_cb);
+my $rh_cbs  = load_cbs($f_cb);
 
 # All cell barcodes into an array
-# my @cbs     = sort keys %{ $rh_cbs };
+my @cbs     = sort keys %{ $rh_cbs };
 
 # Connect to local MongoDB w/ default port
 say "[NOTE] Connecting to '$host:$port'.";
@@ -243,8 +244,6 @@ EOS
 
 =cut
 
-#{{{
-=comment
 sub load_cbs {
     my ($fcbs)  = @_;
     
@@ -267,38 +266,39 @@ sub load_cbs {
     
     return \%cbs;
 }
-=cut
+
+#{{{
+#sub load_cbs {
+#    my ($fcbs)  = @_;
+#    
+#    my @cbs;
+#
+#    open my $fh_cbs, "<", $fcbs or
+#        die "[ERROR] Open 10x Cell Barcodes file '$fcbs' failed!\n$!\n";
+#        
+#    while (<$fh_cbs>) {
+#        next if /^#/;
+#        next if /^\s*$/;
+#        chomp;
+#        
+#        my $cb = $_;
+#        
+#        push @cbs, $cb;
+#    }
+#        
+#    close $fh_cbs;
+#    
+#    return \@cbs;
+#}
 #}}}
-
-sub load_cbs {
-    my ($fcbs)  = @_;
-    
-    my @cbs;
-
-    open my $fh_cbs, "<", $fcbs or
-        die "[ERROR] Open 10x Cell Barcodes file '$fcbs' failed!\n$!\n";
-        
-    while (<$fh_cbs>) {
-        next if /^#/;
-        next if /^\s*$/;
-        chomp;
-        
-        my $cb = $_;
-        
-        push @cbs, $cb;
-    }
-        
-    close $fh_cbs;
-    
-    return \@cbs;
-}
 
 =pod
 
   Name:     correct_cb
   Usage:    correct_cb($cb, $ra_cbs)
-  Function: Correct a cell barcode with if necessary, and identify whether
-            this cell barcode is 10x certified.
+  Function: Correct a cell barcode ($cb) with unknown bases (i.e., except 
+            ACGT) if necessary, and identify whether this cell barcode is 
+            10x certified.
   Args:     $cb     A string, cell barcode to be corrected
             $ra_cbs An array reference, for all pre-defined barcodes
   Return:   A list of 2 items:
@@ -319,22 +319,30 @@ sub correct_cb {
     my $raw_cb  = $cb;
     my $num_cbs = 0;    # Number of found cell barcodes
 
-    if ($cb =~ /[^ACGT]/) { # Found mismatch base, typically 'N'
-	    my $num_mis = $cb =~ s/[^ACGT]/\./; # Convert cb to a regex
-	
-	    if ($num_mis > 1) { # If mismatch bases number > 1
-	        return (0, $raw_cb); # No cell barcode available,
-	                                    # return raw cell barcode string
-	    }
-    }
+#    if ($cb =~ /[^ACGT]/) { # Found mismatch base, typically 'N'
+#	    my $num_mis = $cb =~ s/[^ACGT]/\./; # Convert cb to a regex
+#	
+#	    if ($num_mis > 1) { # If mismatch bases number > 1
+#	        return (0, $raw_cb); # No cell barcode available,
+#	                                    # return raw cell barcode string
+#	    }
+#    }
 
-    # Get the number of $cb in given 10x cell barcodes repository
+    # Replace non-ACGT bases to '.'.
+    # It creates a regex pattern.
+    my $num_mis = $cb =~ s/[^ACGT]/\./g; 
+
+    # More than 1 wrong bases, return original cell barcode string.
+    return (0, $raw_cb) if ($num_mis > 1);
+
+    # Search $cb in given 10x cell barcodes repository
+    # It may need quite a LONG time and get multiple results
     my @results = grep /$cb/, @{ $ra_cbs };
 
     $num_cbs    = scalar @results;
 
     if ($num_cbs == 1) {    # Match only one cell barcode
-        my $corr_cb = $results[0];
+        my $corr_cb = $results[0];  # Get the 1st one, and the only one
 
         return ($num_cbs, $corr_cb);    # Return corrected cb
     }
@@ -418,10 +426,6 @@ sub operate_reads {
             my $read_qual    = <$fh_reads>;
             chomp($read_qual);
 
-            ## $read_str
-            ## $read_len
-            ## $read_qual
-
             if ($read_len >= 150) {  # V(D)J Enriched Library
                 if ($read_num == 1) {   # Read #1
                     my $cb      = substr $read_str, 0, 16;
@@ -429,27 +433,13 @@ sub operate_reads {
                     my $switch  = substr $read_str, 26, 13;
                     my $insert  = substr $read_str, 39;
 
-                    ## $cb
-                    ## $umi
-                    ## $switch
-                    ## $insert
-
                     # Insert quality
                     my $ins_qual= substr $read_qual, 39;
-
-                    # $cb         = uc $cb;   # Convert to upper case
 
                     my $cb_exist=0;
                     my $corr_cb = '';
 
-                    ($cb_exist, $corr_cb)   = correct_cb($cb, $ra_cbs);
-
-                    ## $cb_exist
-                    ## $corr_cb
-
-# {{{
-=pod
-                    if ($cb =~ /[^ACGT]/) { # Other base except ACGT found
+                    if ($cb =~ /[^ACGT]/) { # non-ACGT bases found
                         # say "Found misc base: '$cb'";
 
                         ($cb_exist, $corr_cb)
@@ -458,19 +448,18 @@ sub operate_reads {
                         $num_corr_cbs++ if ($cb_exist == 1);
                     }
                     else {
-                        ($rh_cbs->{$cb}) ? 
-                            # $cb_exist = true : $cb_exist = false;
-                            ($cb_exist = 1) : ($cb_exist = 0);
+                        #($rh_cbs->{$cb}) ? 
+                        #    ($cb_exist = 1) : ($cb_exist = 0);
+                        $corr_cb    = $cb;  # Do not need correction
+                        $cb_exist   = ($rh_cbs->{$cb}) ? 1 : 0;
                     }
-=cut
-#}}}
                     
                     push @docs_pool, {
                         'read_id'       => $read_id,
                         'read_desc'     => $read_desc,
                         'read'          => $read_str,
-                      # 'cell_barcode'  => $corr_cb,
-                        'cell_barcode'  => $cb,
+                        'cell_barcode'  => $corr_cb,
+                      # 'cell_barcode'  => $cb,
                         'cb_exist'      => $cb_exist,
                         'umi'           => $umi,
                       # 'switch'        => $switch,
@@ -533,22 +522,18 @@ sub operate_reads {
                 my $cb_exist    = 0;
                 my $corr_cb     = '';
 
-                ($cb_exist, $corr_cb)   = correct_cb($cb, $ra_cbs);
+                # ($cb_exist, $corr_cb)   = correct_cb($cb, $ra_cbs);
 
-#{{{
-=comment
                 if ($cb =~ /[^ACGT]/) { # Other base except ACGT found
                     ($cb_exist, $corr_cb)
-                        = correct_cb($cb, $ra_cbs);
+                        = correct_cb($cb, \@cbs);
 
                     $num_corr_cbs++ if ($cb_exist == 1);
                 }
                 else {
-                    (exists $rh_cbs->{$cb}) ? 
-                        $cb_exist = 1 : $cb_exist = 0 ;
+                    $corr_cb        = $cb;
+                    $cb_exist       = ($rh_cbs->{$cb}) ? 1 : 0;
                 }
-=cut
-#}}}
  
                 push @docs_pool, {
                     'read_id'       => $read_id,
