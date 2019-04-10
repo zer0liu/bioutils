@@ -87,6 +87,8 @@
                               repository.
     0.1.1   - 2019-04-09    Optimize barcode search.
                             Now use hash, instead of grep an array.
+    0.1.2   - 2019-04-10    Use connection string uri, instead of 
+                            attributes in MongoDB::MongoClient->new()
 
 =cut
 
