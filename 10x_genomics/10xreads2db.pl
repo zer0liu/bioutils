@@ -157,13 +157,33 @@ my @cbs     = sort keys %{ $rh_cbs };
 # Connect to local MongoDB w/ default port
 say "[NOTE] Connecting to '$host:$port'.";
 
-my $mongo_client    = MongoDB::MongoClient->new(
+# Generate connection string URI
+my $conn_uri= 'mongodb://';
+
+# Append user & pwd
+$conn_uri   = $conn_uri . $user . ':' . $pwd . '@'
+    if ($user && $pwd);
+
+# Append host & ip
+$conn_uri   = $conn_uri . $host . ':' . $port . '/';
+
+# Append connection options
+$conn_uri   = $conn_uri . '?' . 
+    'connectTimeoutMS=' . $connect_timeout_ms .
+    '&' . 'socketTimeoutMS=' . $socket_timeout_ms;
+
+### $conn_uri
+
+# Connect to database
+#my $mongo_client    = MongoDB::MongoClient->new(
     #host                => "mongodb://$host",
-    host                => $host,
-    port                => $port,
-    connect_timeout_ms  => $connect_timeout_ms,
-    socket_timeout_ms   => $socket_timeout_ms,
-);
+#    host                => $host,
+#    port                => $port,
+#    connect_timeout_ms  => $connect_timeout_ms,
+#    socket_timeout_ms   => $socket_timeout_ms,
+#);
+
+my $mongo_client    = MongoDB->connect($conn_uri);
 
 # Create database
 my $mongo_db    = $mongo_client->get_database( $db );
