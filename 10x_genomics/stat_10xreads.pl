@@ -151,6 +151,8 @@ while (my $doc = $cb_out->next) {
 
 close $fh_out;
 
+# Find orphan reads. i.e., read with Read #1 or Read #2 ONLY.
+
 #===========================================================
 #
 #                   Subroutines

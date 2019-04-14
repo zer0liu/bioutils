@@ -218,6 +218,8 @@ say "Created indexes:\n", join "\n", @idx_names;
 # Close connection
 $mongo_client->disconnect;
 
+say "Database disconnected!";
+
 exit 0;
 
 
