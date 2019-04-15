@@ -16,6 +16,7 @@
 =head1 VERSION
 
     0.0.1   - 2019-04-04
+    0.0.2   - 2019-04-15    More complex aggragation.
 
 =cut
 
@@ -171,7 +172,7 @@ open $fh_out, ">", $f_out or
 
 say $fh_out join "\t", qw(Barcode UMI Reads_number);
 
-while (my $doc = $cb_out->next) {
+while (my $doc = $cb_umi_out->next) {
     say $fh_out join "\t", (
         $doc->{'_id'}->{'cb'}, 
         $doc->{'_id'}->{'umi'},
