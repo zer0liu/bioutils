@@ -42,7 +42,7 @@ my $connect_timeout_ms  = 10_000;   # i.e., 10 s
 # the amount of time in milliseconds to wait for a reply from the 
 # server before issuing a network exception.
 # Default: 30,000 ms
-my $socket_timeout_ms   = 120_000;  # i.e., 120 s
+my $socket_timeout_ms   = 1_800_000;  # i.e., 120 s
 
 #===========================================================
 #
@@ -97,6 +97,7 @@ my $mongo_client    = MongoDB->connect($conn_uri);
 # Get given database
 my $mongo_db  = $mongo_client->get_database( $db );
 
+=pod
 #
 # Number of reads by Cell barcode
 #
@@ -122,7 +123,6 @@ my $cb_out  = $mongo_db->get_collection('reads')->aggregate(
 # Output result to txt file.
 my $f_out   = 'cb_stat.txt';
 
-=pod
 open my $fh_out, ">", $f_out or
     die "[ERROR] Create output file '$f_out' failed!\n$!\n";
 
@@ -158,14 +158,14 @@ my $cb_umi_out  = $mongo_db->get_collection('reads')->aggregate(
     ],  { 'allowDiskUse' => true }
 );
 
-$f_out  = 'cb_umi_stat.txt';
+my $f_out  = 'cb_umi_stat.txt';
 
 open my $fh_out, ">", $f_out or
     die "[ERROR] Create output file '$f_out' failed!\n$!\n";
 
 say $fh_out join "\t", qw(Barcode UMI Reads_number);
 
-while (my $doc = $cb_out->next) {
+while (my $doc = $cb_umi_out->next) {
     ### $doc
     # say $fh_out join "\t", ( $doc->{'_id'}, $doc->{'num_reads'} );
 }
