@@ -101,7 +101,7 @@ my $mongo_db  = $mongo_client->get_database( $db );
 #
 # Number of reads by Cell barcode
 #
-say "[NOTE] Statistics of Cell Barcodes ...";
+say "[NOTE] Statistics of reads number in Cell Barcodes ...";
 
 my $cb_out  = $mongo_db->get_collection('reads')->aggregate(
     [
@@ -138,11 +138,52 @@ while (my $doc = $cb_out->next) {
 close $fh_out;
 
 #
-# Number of reads by cell barcide and UMI
+# Number of reads by umi of cell barcode
 #
-say "[NOTE] Statistics of Cell Barcodes and UMI ...";
 
-my $cb_umi_out  = $mongo_db->get_collection('reads')->aggregate(
+say "[NOTE] Statistics of reads by UMI of Cell Barcodes ...";
+
+my $cb_out  = $mongo_db->get_collection('reads')->aggregate(
+    [
+        { 
+            '$match'    => { 
+                'read_num'  => 1,
+                'cb_exist'  => 1
+            } 
+        },
+        { 
+            '$group'    => {
+                '_id'       => '$cell_barcode',
+                'num_reads' => { '$sum' => 1 }
+            }
+        },
+        {
+            '$sort'     => { 'num_reads'=> -1 }
+        }
+    ], { 'allowDiskUse' => true }
+);
+
+# Output result to txt file.
+my $f_out   = $db . '_cb_stat.txt';
+
+open my $fh_out, ">", $f_out or
+    die "[ERROR] Create output file '$f_out' failed!\n$!\n";
+
+say $fh_out join "\t", qw(Barcode Reads_number);
+
+while (my $doc = $cb_out->next) {
+    say $fh_out join "\t", ( $doc->{'_id'}, $doc->{'num_reads'} );
+}
+
+close $fh_out;
+
+
+#
+# Number of umi by cell barcode
+#
+say "[NOTE] Statistics of UMI by Cell Barcodes ...";
+
+my $umi4cb_out  = $mongo_db->get_collection('reads')->aggregate(
     [
         { 
             '$match'    => {
