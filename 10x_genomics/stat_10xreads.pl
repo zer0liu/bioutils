@@ -97,7 +97,6 @@ my $mongo_client    = MongoDB->connect($conn_uri);
 # Get given database
 my $mongo_db  = $mongo_client->get_database( $db );
 
-=pod
 #
 # Number of reads by Cell barcode
 #
@@ -124,7 +123,7 @@ my $cb_out  = $mongo_db->get_collection('reads')->aggregate(
 );
 
 # Output result to txt file.
-my $f_out   = $db_name . '_cb_stat.txt';
+my $f_out   = $db . '_cb_stat.txt';
 
 open my $fh_out, ">", $f_out or
     die "[ERROR] Create output file '$f_out' failed!\n$!\n";
@@ -137,7 +136,9 @@ while (my $doc = $cb_out->next) {
 
 close $fh_out;
 
+#
 # Number of reads by cell barcide and UMI
+#
 say "[NOTE] Statistics of Cell Barcodes and UMI ...";
 
 my $cb_umi_out  = $mongo_db->get_collection('reads')->aggregate(
@@ -163,32 +164,29 @@ my $cb_umi_out  = $mongo_db->get_collection('reads')->aggregate(
     ],  { 'allowDiskUse' => true }
 );
 
-<<<<<<< HEAD
-$f_out  = $db_name . '_cb_umi_stat.txt';
-=======
-my $f_out  = 'cb_umi_stat.txt';
->>>>>>> 8031cf0ea4eaad015ff07bfd0b2c0c764653c6c9
+$f_out  = $db . '_cb_umi_stat.txt';
 
 open $fh_out, ">", $f_out or
     die "[ERROR] Create output file '$f_out' failed!\n$!\n";
 
 say $fh_out join "\t", qw(Barcode UMI Reads_number);
 
-<<<<<<< HEAD
 while (my $doc = $cb_out->next) {
     say $fh_out join "\t", (
         $doc->{'_id'}->{'cb'}, 
         $doc->{'_id'}->{'umi'},
         $doc->{'num_reads'} 
     );
-=======
-while (my $doc = $cb_umi_out->next) {
-    ### $doc
-    # say $fh_out join "\t", ( $doc->{'_id'}, $doc->{'num_reads'} );
->>>>>>> 8031cf0ea4eaad015ff07bfd0b2c0c764653c6c9
 }
 
 close $fh_out;
+
+# Disconnect
+$mongo_client->disconnect();
+
+say "[OK] Database disconnected.";
+
+exit 0;
 
 # Find orphan reads. i.e., read with Read #1 or Read #2 ONLY.
 
