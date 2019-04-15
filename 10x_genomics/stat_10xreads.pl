@@ -69,18 +69,37 @@ unless ($db) {
     die usage();
 }
 
+# Generate connection string URI
+my $conn_uri= 'mongodb://';
+
+# Append user & pwd
+$conn_uri   = $conn_uri . $user . ':' . $pwd . '@'
+    if ($user && $pwd);
+
+# Append host & ip
+$conn_uri   = $conn_uri . $host . ':' . $port . '/';
+
+# Append connection options
+$conn_uri   = $conn_uri . '?' . 
+    'connectTimeoutMS=' . $connect_timeout_ms .
+    '&' . 'socketTimeoutMS=' . $socket_timeout_ms;
+
 # Connect to database
-my $mongo_client    = MongoDB::MongoClient->new(
-    host                => $host,
-    port                => $port,
-    connect_timeout_ms  => $connect_timeout_ms,
-    socket_timeout_ms   => $socket_timeout_ms,
-);
+#my $mongo_client    = MongoDB::MongoClient->new(
+#    host                => $host,
+#    port                => $port,
+#    connect_timeout_ms  => $connect_timeout_ms,
+#    socket_timeout_ms   => $socket_timeout_ms,
+#);
+
+my $mongo_client    = MongoDB->connect($conn_uri);
 
 # Get given database
 my $mongo_db  = $mongo_client->get_database( $db );
 
+#
 # Number of reads by Cell barcode
+#
 say "[NOTE] Statistics of Cell Barcodes ...";
 
 my $cb_out  = $mongo_db->get_collection('reads')->aggregate(
@@ -97,12 +116,13 @@ my $cb_out  = $mongo_db->get_collection('reads')->aggregate(
         {
             '$sort'     => { 'num_reads'=> -1 }
         }
-    ]
+    ], { 'allowDiskUse' => true }
 );
 
 # Output result to txt file.
 my $f_out   = 'cb_stat.txt';
 
+=pod
 open my $fh_out, ">", $f_out or
     die "[ERROR] Create output file '$f_out' failed!\n$!\n";
 
@@ -113,6 +133,7 @@ while (my $doc = $cb_out->next) {
 }
 
 close $fh_out;
+=cut
 
 # Number of reads by cell barcide and UMI
 say "[NOTE] Statistics of Cell Barcodes and UMI ...";
@@ -139,7 +160,7 @@ my $cb_umi_out  = $mongo_db->get_collection('reads')->aggregate(
 
 $f_out  = 'cb_umi_stat.txt';
 
-open $fh_out, ">", $f_out or
+open my $fh_out, ">", $f_out or
     die "[ERROR] Create output file '$f_out' failed!\n$!\n";
 
 say $fh_out join "\t", qw(Barcode UMI Reads_number);
