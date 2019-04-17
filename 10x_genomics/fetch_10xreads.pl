@@ -45,7 +45,20 @@ use warnings;
 
 sub usage {
     say << 'EOS';
-
+Fetch reads by Cell Barcodes or UMIs from a 10x MongoDB.
+Usage:
+  fetch_10xreads.pl -d <db> [-l <cb|umi>] [--host <host>] [--port <port>]
+                    [--user <user>] [--pwd <pwd>]
+Arguments:
+  -d <db>       MongoDB database name.
+  -l <cb|umi>   Reads level, Cell Barcode (cb) or UMI (umi). Optional.
+                Default umi.
+  --host <host> Server hostname or IP address. Optional.
+                Default 127.0.0.1.
+  --port <port> Port. Optional.
+                Default 27017.
+  --user <user> Username. Optional.
+  --pwd <pwd>   Password. Optional.
 EOS
 }
 

@@ -250,13 +250,13 @@ exit 0;
 
 sub usage {
     say << 'EOS';
-Statistics 10x reads in given MongoDB database by Cell Barcodes and UMI.
+Statistics 10x reads in given MongoDB database by Cell Barcodes and UMIs.
 Usage:
   stat_10xreads.pl -d <db> [--host <host>] [--port <port>] [--user <user>]
                         [--pwd <pwd>]
 Arguments:
-  -d <db>       MongoDB name.
-  --host <host> Hostname or IP address to be connected. Optional.
+  -d <db>       MongoDB database name.
+  --host <host> Server hostname or IP address to be connected. Optional.
                 Default 127.0.0.1.
   --port <port> Port. Optional.
                 Default 27017.
