@@ -197,13 +197,13 @@ elsif ($level eq 'umi') {
         my $umi         = $doc->{'_id'}->{'umi'};
         my $num_reads   = $doc->{'num_reads'};
 
-        say "[NOTE] Working on cb ", fprintf("%06d", $cb_sn), ":\t", $cb,
-            ", umi ", fprintf("%05d", $umi_sn), ":\t", $umi;
+        say "[NOTE] Working on cb ", sprintf("%06d", $cb_sn), ":\t", $cb,
+            ", umi ", sprintf("%05d", $umi_sn), ":\t", $umi;
         
         # Read 1 output filename
         my $fout_R1 = $fout . 
-            '_cb' . fprintf("%06d", $cb_sn) .
-            '_umi' . fprintf("%05d", $umi_sn) .
+            '_cb' . sprintf("%06d", $cb_sn) .
+            '_umi' . sprintf("%05d", $umi_sn) .
             '_R1.fq.gz';
 
         # Read 2 output filename
