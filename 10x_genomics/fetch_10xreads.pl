@@ -208,8 +208,8 @@ elsif ($level eq 'umi') {
 
         # Read 2 output filename
         my $fout_R2 = $fout . 
-            '_cb' . fprintf("%06d", $cb_sn) .
-            '_umi' . fprintf("%05d", $umi_sn) .
+            '_cb' . sprintf("%06d", $cb_sn) .
+            '_umi' . sprintf("%05d", $umi_sn) .
             '_R2.fq.gz';        
         
         # Store umi by cb information into a hash: %cbs
