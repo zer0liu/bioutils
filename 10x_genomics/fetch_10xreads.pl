@@ -68,6 +68,7 @@ use warnings;
 
 use boolean;
 use Getopt::Long;
+use IO::Zlib;
 use MongoDB;
 use Smart::Comments;
 
@@ -151,6 +152,9 @@ if ($level eq 'cb') {
 }
 elsif ($level eq 'umi') {
     # Aggregation to count & filter result set
+    say "[NOTE] Querying '$db' for reads number of a UMI ",
+        "greater than '$thold' ...";
+    
     my @pipeline    = (
         { '$match' => { 'read_num' => 1, 'cb_exist' => 1 } },
         { '$group' => {
@@ -158,11 +162,11 @@ elsif ($level eq 'umi') {
             'num_reads' => { '$sum' => 1 },
         }, },
         { '$match' => { 'num_reads' => { '$gt' => $thold } } },
-        { '$sort'  => { 'num_reads': -1 } },
+        { '$sort'  => { 'num_reads' => -1 } },
     );
 
     my %options     = (
-        'allowDiskUse'  => true,
+        'allowDiskUse'  => true,    # In case the result set is too large
     );
 
     my $result  = $mongo_db->get_collection('reads')->aggregate(
@@ -170,43 +174,119 @@ elsif ($level eq 'umi') {
         \%options
     );
 
+    # Init count variables
     my $cb_sn   = 0;    # a.k.a., cb ID
-    my $umi_num = 1;    # a.k.a., umi ID, for each cb
+    my $umi_sn  = 0;    # a.k.a., umi ID, for each cb
 
-    my %cbs;            # Hash to store cb information
-
-    my $fout_R1 = $fout . 
-        '_' . 'cb' . fprintf("%06d", $cb_num) .
-        '_' . 'umi' . fprintf("%05d", $umi_num) .
-        '_R1.fq.gz';
-
+    # Hash to store cb information
+    # It would be used to 
+    # - Statistics of UMIs per Cell Barcode
+    # - Store Cell Barcodes for query the *Read 2*
+    # Structure
+    # %cbs = (
+    #   $cb => (
+    #      'sn'        => $sn,         #
+    #      'num_umi'   => $num_umi,
+    #   ),
+    # );
+    my %cbs;
+    
+    # Traverse aggregate result set
     while (my $doc = $result->next) {
         my $cb          = $doc->{'_id'}->{'cb'};
         my $umi         = $doc->{'_id'}->{'umi'};
         my $num_reads   = $doc->{'num_reads'};
 
-        # Store umi by cb information into a hash: %cbs
-        if (exists $cbs{$cb}) {
-            $cbs{$cb}->{'num_umi'}  = $umi_num;
+        say "[NOTE] Working on cb ", fprintf("%06d", $cb_sn), ":\t", $cb,
+            ", umi ", fprintf("%05d", $umi_sn), ":\t", $umi;
+        
+        # Read 1 output filename
+        my $fout_R1 = $fout . 
+            '_cb' . fprintf("%06d", $cb_sn) .
+            '_umi' . fprintf("%05d", $umi_sn) .
+            '_R1.fq.gz';
 
-            $umi_num++;
+        # Read 2 output filename
+        my $fout_R2 = $fout . 
+            '_cb' . fprintf("%06d", $cb_sn) .
+            '_umi' . fprintf("%05d", $umi_sn) .
+            '_R2.fq.gz';        
+        
+        # Store umi by cb information into a hash: %cbs
+        if (exists $cbs{$cb}) { # Cell Barcode already exists
+            $cbs{$cb}->{'num_umi'}  = $umi_sn;
+
+            $umi_sn++;
         }
-        else {
+        else {  # Cell Barcode NOT exists
             $cbs{$cb}->{'sn'}       = $cb_sn;
-            $cbs{$cb}->{'num_umi'}  = $num_umi;
+            $cbs{$cb}->{'num_umi'}  = $umi_sn;
 
             $cb_sn++;
-            $num_umi++;
+            $umi_sn++;
         }
-
-        # Based on cb & umi, query to get seq_id, seq_desc,
-        # seq_insert & insert_qual
+        
+        # Create output Read 1 gz file
+        my $fh_R1   = IO::Zlib->new($fout_R1, "wb");
+        my $fh_R2   = IO::Zlib->new($fout_R2, "wb");
+        
+        # Based on cb & umi, query to get Read 1: 
+        # read_id, read_desc, insert & insert_qual
+        my $read1_result    = $mongo_db->get_collection('reads')->find(
+            { 'cell_barcode'  => $cb, 'umi' => $umi, 
+              'read_num' => 1, 'cb_exist' => 1,
+            },                                          # WHERE-clause
+            { 'read_id' => 1, 'read_desc' => 1, 
+              'insert' => 1, 'ins_qual' => 1,
+              '_id' => 0,
+            }                                           # SELECT-clause
+        );
+        
+        while (my $read1_doc = $read1_result->next) {
+            my $read_id     = $read1_doc->{'read_id'};
+            my $read_desc   = $read1_doc->{'read_desc'};
+            my $insert      = $read1_doc->{'insert'};
+            my $ins_qual    = $read1_doc->{'ins_qual'};
+            
+            say $fh_R1 '@', join " ", ($read_id, $read_desc, $cb, $umi);
+            say $fh_R1 $insert;
+            say $fh_R1 '+';
+            say $fh_R1 $ins_qual;
+            
+            # Query Read 2
+            my $read2_result    = $mongo_db->get_collection('reads')->find(
+                { 'read_id' => $read_id, 
+                  'read_num' => 2, 'cb_exist' => 1,
+                },
+                { 'read_id' => 1, 'read_desc' => 1, 
+                  'insert' => 1, 'ins_qual' => 1,
+                  '_id' => 0,
+                }
+            );
+            
+            while (my $read2_doc = $read2_result->next) {
+                my $read_id     = $read2_doc->{'read_id'};
+                my $read_desc   = $read2_doc->{'read_desc'};
+                my $insert      = $read2_doc->{'insert'};
+                my $ins_qual    = $read2_doc->{'ins_qual'};
+                
+                say $fh_R2 '@', join " ", ($read_id, $read_desc, $cb, $umi);
+                say $fh_R2 $insert;
+                say $fh_R2 '+';
+                say $fh_R2 $ins_qual;
+            }
+        }
+        
+        $fh_R1->close();
+        $fh_R2->close();
     }
 }
 else {
     warn "[ERROR] Unsupported level: '$level'!\n";
     die usage();
 }
+
+$mongo_client->disconnect;
 
 exit 0;
 
