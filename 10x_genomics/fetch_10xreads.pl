@@ -248,16 +248,14 @@ elsif ($level eq 'umi') {
             my $insert      = $read1_doc->{'insert'};
             my $ins_qual    = $read1_doc->{'ins_qual'};
             
-            say $fh_R1 '@', join " ", ($read_id, $read_desc, $cb, $umi);
+            say $fh_R1 '@', join " ", ($read_id, $read_desc); #, $cb, $umi);
             say $fh_R1 $insert;
             say $fh_R1 '+';
             say $fh_R1 $ins_qual;
             
             # Query Read 2
             my $read2_result    = $mongo_db->get_collection('reads')->find(
-                { 'read_id' => $read_id, 
-                  'read_num' => 2, 'cb_exist' => 1,
-                },
+                { 'read_id' => $read_id, 'read_num' => 2, },
                 { 'read_id' => 1, 'read_desc' => 1, 
                   'insert' => 1, 'ins_qual' => 1,
                   '_id' => 0,
@@ -270,7 +268,7 @@ elsif ($level eq 'umi') {
                 my $insert      = $read2_doc->{'insert'};
                 my $ins_qual    = $read2_doc->{'ins_qual'};
                 
-                say $fh_R2 '@', join " ", ($read_id, $read_desc, $cb, $umi);
+                say $fh_R2 '@', join " ", ($read_id, $read_desc); #, $cb, $umi);
                 say $fh_R2 $insert;
                 say $fh_R2 '+';
                 say $fh_R2 $ins_qual;
