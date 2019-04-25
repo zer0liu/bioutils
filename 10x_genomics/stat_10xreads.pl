@@ -192,51 +192,6 @@ for my $cb (sort keys %umi_cb) {
 
 close $fh_out;
 
-
-=pod
-say "[NOTE] Statistics of UMI by Cell Barcodes ...";
-
-my $umi4cb_out  = $mongo_db->get_collection('reads')->aggregate(
-    [
-        { 
-            '$match'    => {
-                'read_num'  => 1,
-                'cb_exist'  => 1
-            } 
-        },
-        {
-            '$group'    => {
-                '_id'       => {
-                    'cb'        => '$cell_barcode',
-                    'umi'       => '$umi'
-                },
-                'num_reads' => { '$sum' => 1 }
-            },
-        },
-        {
-            '$sort'     => { 'num_reads' => -1 }
-        },
-    ],  { 'allowDiskUse' => true }
-);
-
-$f_out  = $db . '_cb_umi_stat.txt';
-
-open $fh_out, ">", $f_out or
-    die "[ERROR] Create output file '$f_out' failed!\n$!\n";
-
-say $fh_out join "\t", qw(Barcode UMI Reads_number);
-
-while (my $doc = $cb_umi_out->next) {
-    say $fh_out join "\t", (
-        $doc->{'_id'}->{'cb'}, 
-        $doc->{'_id'}->{'umi'},
-        $doc->{'num_reads'} 
-    );
-}
-
-close $fh_out;
-=cut
-
 # Disconnect
 $mongo_client->disconnect();
 
