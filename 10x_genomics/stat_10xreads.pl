@@ -18,6 +18,7 @@
     0.0.1   - 2019-04-04
     0.0.2   - 2019-04-15    More complex aggragation.
     0.1.0   - 2019-04-25    Statistics of UMIs per cb.
+                            Sort by numbers of UMIs.
 
 =cut
 
@@ -188,7 +189,7 @@ open $fh_out, ">", $f_out or
 
 say $fh_out join "\t", qw#Cell_Barcode UMI_Number#;
 
-for my $cb (sort keys %umi_cb) {
+for my $cb (sort { $umi_cb{$a} <=> $umi_cb{$b} } keys %umi_cb) {
     say $fh_out join "\t", ($cb, $umi_cb{$cb} );
 }
 
