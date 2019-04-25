@@ -17,6 +17,7 @@
 
     0.0.1   - 2019-04-04
     0.0.2   - 2019-04-15    More complex aggragation.
+    0.1.0   - 2019-04-25    Statistics of UMIs per cb.
 
 =cut
 
