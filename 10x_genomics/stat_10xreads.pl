@@ -179,9 +179,9 @@ close $fh_out;
 #
 # Number of umi by cell barcode
 #
-$f_out  = $db . 'umi-cb_stat.txt';
+$f_out  = $db . '_umi-cb_stat.txt';
 
-open $fh_out, ">", or
+open $fh_out, ">", $f_out or
     die "[ERROR] Create output file '$f_out' failed!\n$!\n";
 
 say $fh_out join "\t", qw#Cell_Barcode UMI_Number#;
