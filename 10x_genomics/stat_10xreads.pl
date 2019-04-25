@@ -189,7 +189,7 @@ open $fh_out, ">", $f_out or
 
 say $fh_out join "\t", qw#Cell_Barcode UMI_Number#;
 
-for my $cb (sort { $umi_cb{$a} <=> $umi_cb{$b} } keys %umi_cb) {
+for my $cb (sort { $umi_cb{$b} <=> $umi_cb{$a} } keys %umi_cb) {
     say $fh_out join "\t", ($cb, $umi_cb{$cb} );
 }
 
