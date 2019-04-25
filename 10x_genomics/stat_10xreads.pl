@@ -102,7 +102,7 @@ my $mongo_db  = $mongo_client->get_database( $db );
 #
 # Number of reads by Cell barcode
 #
-say "[NOTE] Statistics of reads number in Cell Barcodes ...";
+say "[NOTE] Statistics of reads number per Cell Barcode ...";
 
 my $cb_out  = $mongo_db->get_collection('reads')->aggregate(
     [
@@ -132,7 +132,7 @@ close $fh_out;
 # Number of reads by umi of cell barcode
 #
 
-say "[NOTE] Statistics of reads by UMI of Cell Barcodes ...";
+say "[NOTE] Statistics of reads number per UMI of Cell Barcodes ...";
 
 my $umi_cb_out  = $mongo_db->get_collection('reads')->aggregate(
     [
@@ -179,6 +179,8 @@ close $fh_out;
 #
 # Number of umi by cell barcode
 #
+say "[NOTE] Statistics of UMI number per Cell Barcode ...";
+
 $f_out  = $db . '_umi-cb_stat.txt';
 
 open $fh_out, ">", $f_out or
