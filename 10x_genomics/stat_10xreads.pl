@@ -105,31 +105,21 @@ say "[NOTE] Statistics of reads number in Cell Barcodes ...";
 
 my $cb_out  = $mongo_db->get_collection('reads')->aggregate(
     [
-        { 
-            '$match'    => { 
-                'read_num'  => 1,
-                'cb_exist'  => 1
-            } 
+        { '$match' => { 'read_num' => 1, 'cb_exist' => 1 } },
+        { '$group' => { '_id' => '$cell_barcode', 
+                        'num_reads' => { '$sum' => 1 } },
         },
-        { 
-            '$group'    => {
-                '_id'       => '$cell_barcode',
-                'num_reads' => { '$sum' => 1 }
-            }
-        },
-        {
-            '$sort'     => { 'num_reads'=> -1 }
-        }
+        { '$sort' => { 'num_reads'=> -1 } }
     ], { 'allowDiskUse' => true }
 );
 
 # Output result to txt file.
-my $f_out   = $db . '_cb_stat.txt';
+my $f_out   = $db . '_reads-cb_stat.txt';
 
 open my $fh_out, ">", $f_out or
     die "[ERROR] Create output file '$f_out' failed!\n$!\n";
 
-say $fh_out join "\t", qw(Barcode Reads_number);
+say $fh_out join "\t", qw(Cell_Barcode Reads_number);
 
 while (my $doc = $cb_out->next) {
     say $fh_out join "\t", ( $doc->{'_id'}, $doc->{'num_reads'} );
@@ -143,44 +133,66 @@ close $fh_out;
 
 say "[NOTE] Statistics of reads by UMI of Cell Barcodes ...";
 
-my $cb_out  = $mongo_db->get_collection('reads')->aggregate(
+my $umi_cb_out  = $mongo_db->get_collection('reads')->aggregate(
     [
-        { 
-            '$match'    => { 
-                'read_num'  => 1,
-                'cb_exist'  => 1
-            } 
+        { '$match' => { 'read_num' => 1, 'cb_exist' => 1 } },
+        { '$group' => { '_id' => { 'cb' => '$cell_barcode', 'umi' => '$umi' },
+                        'num_reads' => { '$sum' => 1 } },
         },
-        { 
-            '$group'    => {
-                '_id'       => '$cell_barcode',
-                'num_reads' => { '$sum' => 1 }
-            }
-        },
-        {
-            '$sort'     => { 'num_reads'=> -1 }
-        }
+        { '$sort' => { 'num_reads'=> -1 } },
     ], { 'allowDiskUse' => true }
 );
 
-# Output result to txt file.
-my $f_out   = $db . '_cb_stat.txt';
+# A hash to store cb and related umi numbers
+# %umi_cb = (
+#   $cb => $umi_number;
+# );
 
-open my $fh_out, ">", $f_out or
+my %umi_cb;
+
+# Output result to txt file.
+$f_out   = $db . '_reads-umi_cb_stat.txt';
+
+open $fh_out, ">", $f_out or
     die "[ERROR] Create output file '$f_out' failed!\n$!\n";
 
-say $fh_out join "\t", qw(Barcode Reads_number);
+say $fh_out join "\t", qw(Cell_Barcode UMI Reads_number);
 
-while (my $doc = $cb_out->next) {
-    say $fh_out join "\t", ( $doc->{'_id'}, $doc->{'num_reads'} );
+while (my $doc = $umi_cb_out->next) {
+    say $fh_out join "\t", ( $doc->{'_id'}->{'cb'}, $doc->{'_id'}->{'umi'},
+    $doc->{'num_reads'} );
+    
+    # Statistics umis per cb
+    my $cb  = $doc->{'_id'}->{'cb'};
+    
+    if (exists $umi_cb{$cb}) {
+        $umi_cb{$cb}++;
+    }
+    else {
+        $umi_cb{$cb}    = 1;
+    }
+}
+
+close $fh_out;
+
+#
+# Number of umi by cell barcode
+#
+$f_out  = $db . 'umi-cb_stat.txt';
+
+open $fh_out, ">", or
+    die "[ERROR] Create output file '$f_out' failed!\n$!\n";
+
+say $fh_out join "\t", qw#Cell_Barcode UMI_Number#;
+
+for my $cb (sort keys %umi_cb) {
+    say $fh_out join "\t", ($cb, $umi_cb{$cb} );
 }
 
 close $fh_out;
 
 
-#
-# Number of umi by cell barcode
-#
+=pod
 say "[NOTE] Statistics of UMI by Cell Barcodes ...";
 
 my $umi4cb_out  = $mongo_db->get_collection('reads')->aggregate(
@@ -222,6 +234,7 @@ while (my $doc = $cb_umi_out->next) {
 }
 
 close $fh_out;
+=cut
 
 # Disconnect
 $mongo_client->disconnect();
