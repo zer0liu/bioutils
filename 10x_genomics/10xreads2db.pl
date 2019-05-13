@@ -89,6 +89,8 @@
                             Now use hash, instead of grep an array.
     0.1.2   - 2019-04-10    Use connection string uri, instead of 
                             attributes in MongoDB::MongoClient->new()
+    0.2.0   - 2019-05-13    Calculate Hamming distance of two strings,
+                            instead of detect N only.
 
 =cut
 
@@ -291,31 +293,6 @@ sub load_cbs {
     return \%cbs;
 }
 
-#{{{
-#sub load_cbs {
-#    my ($fcbs)  = @_;
-#    
-#    my @cbs;
-#
-#    open my $fh_cbs, "<", $fcbs or
-#        die "[ERROR] Open 10x Cell Barcodes file '$fcbs' failed!\n$!\n";
-#        
-#    while (<$fh_cbs>) {
-#        next if /^#/;
-#        next if /^\s*$/;
-#        chomp;
-#        
-#        my $cb = $_;
-#        
-#        push @cbs, $cb;
-#    }
-#        
-#    close $fh_cbs;
-#    
-#    return \@cbs;
-#}
-#}}}
-
 =pod
 
   Name:     correct_cb
@@ -373,6 +350,28 @@ sub correct_cb {
     else {  # Otherwise, 0, 2 or more, return original cb
         return ($num_cbs, $raw_cb);
     }
+}
+
+=pod
+
+  Name:     hamming_dist
+  Usage:    hamming_dist($str1, $str2)
+  Function: Calculate the hamming distiance of two strings with the 
+            same length.
+  Args:     $str1, $str2:   Strings.
+  Return:   -1:     String length are NOT equal
+            0:      Identical string
+            Other:  Distance between these 2 strings.
+  Note:     This subroutine works well for ASCII characters.
+            Behavior may be unpredictable for UTF encoded strings.
+=cut
+
+sub hamming_dist {
+    my ($str1, $str2)   = @_;
+
+    return 0 if ($str1 eq $str2);
+    return -1 if ( length(str1) != length($str2) );
+    return ($str1 ^ $str2) =~ tr/\001-\255//;
 }
 
 =pod
