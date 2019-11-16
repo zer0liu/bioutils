@@ -43,9 +43,9 @@ if not args.fmt:
 else:
     fmt = args.fmt
 
-print("Input file:\t%s" % (fin))
-print("Seq ID\tLength")
-print("====\t====")
+# print("Input file:\t%s" % (fin))
+print("#SeqID\tLength")
+# print("====\t====")
 
 fh_in   = open(fin, "rU")
 
