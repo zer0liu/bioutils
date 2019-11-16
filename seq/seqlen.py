@@ -16,6 +16,8 @@ AUTHORS
 VERSION
     
     0.0.1   2016-10-14
+    0.0.2   2019-11-16  Now output only 1 line heading information
+
 '''
 
 from Bio import SeqIO
