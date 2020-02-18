@@ -18,6 +18,7 @@
     0.1.0   2018-07-20  New feature: Wether output stable sites
     0.1.1   2018-07-20  Add progress bar.
     0.2.0   2018-12-20  Deal with degenerate codon.
+    0.2.1   2020-02-19  Deal with base 'N' in alignment.
 
 =cut
 
@@ -34,43 +35,18 @@ use Term::ProgressBar;
 
 #===========================================================
 #
-#                   Predefined data
-#
-#===========================================================
-
-# Hash for codon to amino acids
-my %codon2aa  = (
-    TTT => "F", TTC => "F", TTA => "L", TTG => "L",
-    TCT => "S", TCC => "S", TCA => "S", TCG => "S",
-    TAT => "Y", TAC => "Y", TAA => "*", TAG => "*",
-    TGT => "C", TGC => "C", TGA => "*", TGG => "W",
-    CTT => "L", CTC => "L", CTA => "L", CTG => "L",
-    CCT => "P", CCC => "P", CCA => "P", CCG => "P",
-    CAT => "H", CAC => "H", CAA => "Q", CAG => "Q",
-    CGT => "R", CGC => "R", CGA => "R", CGG => "R",
-    ATT => "I", ATC => "I", ATA => "I", ATG => "M",
-    ACT => "T", ACC => "T", ACA => "T", ACG => "T",
-    AAT => "N", AAC => "N", AAA => "K", AAG => "K",
-    AGT => "S", AGC => "S", AGA => "R", AGG => "R",
-    GTT => "V", GTC => "V", GTA => "V", GTG => "V",
-    GCT => "A", GCC => "A", GCA => "A", GCG => "A",
-    GAT => "D", GAC => "D", GAA => "E", GAG => "E",
-    GGT => "G", GGC => "G", GGA => "G", GGG => "G",
-);
-
-#===========================================================
-#
 #                   Main program
 #
 #===========================================================
 
-my ($faln, $fregion, $fout, $F_var);
+my ($faln, $fregion, $fout, $F_var, $F_noN);
 
 GetOptions(
-    'a=s'   => \$faln,
-    'r=s'   => \$fregion,
-    'o=s'   => \$fout,
-    'v'     => \$F_var,
+    'a=s'   => \$faln,          # Input alignment file
+    'r=s'   => \$fregion,       # Input region file
+    'o=s'   => \$fout,          # Output file
+    'v'     => \$F_var,         # Flag, whether output variation sites only
+    'N'     => \$F_noN,         # Flag, whether dismiss N in sequence
     'h'     => sub { usage(); exit 1 },
 );
 
@@ -306,6 +282,8 @@ Args:
   -o <fout>     Output filename. Optional.
   -v            Output variation sites only. Optional.
                 Default output all sites.
+  -N            Base 'N' is not considered as a variation. Optional.
+                Default 'N' is considered as a normal base.
 Note:
   1. The First sequence of the Alignment was used as the Reference 
      sequence. And it will NOT be present in result.
@@ -319,7 +297,7 @@ Note:
 	"i"  Inter-gene region
 	"a"  Stable/unchanged sites.
   5. Works on single stranded virus only.
-  6. Degenerate codon accepted now.
+  6. Degenerate codon accepted.
 EOS
 
 }
@@ -465,10 +443,15 @@ sub parse_sites {
 
         for my $o_seq ($o_slice_aln->each_seq) {
             my $item    = $o_seq->seq;
-            next if ($item eq '-'); # Dismiss gaps ('-')
 
-            $items{$item} = (defined $items{$item}) ?
-                $items{$item} + 1 : 1;
+            # Dismiss gaps (i.e., '-')
+            next if ($item eq '-'); 
+
+            # Dismiss character 'N' if '-N' option is *set*
+            next if ( (defined $F_noN) && ($item eq 'N') ); 
+
+            $items{$item} = ( defined $items{$item} ) ?
+                ( $items{$item} + 1 ) : 1;
         }
         
         ## %items
