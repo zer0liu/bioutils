@@ -19,6 +19,7 @@
     0.1.1   2018-07-20  Add progress bar.
     0.2.0   2018-12-20  Deal with degenerate codon.
     0.2.1   2020-02-19  Deal with base 'N' in alignment.
+    0.2.2   2020-02-19  Convert sequences in alignment to uppercase first.
 
 =cut
 
@@ -87,6 +88,11 @@ my $o_aln   = $o_alni->next_aln;
 # Check wether the alignment is flush, i.e., all of the same length
 unless ( $o_aln->is_flush) {
     die "[ERROR] All sequences in the alignment are NOT the same length!\n";
+}
+
+# Set all the sequences in alignment to UPPER case
+unless ($o_aln->uppercase) {
+    die "[ERROR] Convert sequences to uppercase failed!\n";
 }
 
 my $aln_len = $o_aln->length;
@@ -477,10 +483,13 @@ sub parse_sites {
 =pod
 
   Name:     get_stable_sites
-  Function: Get stable site locaionts
+  Function: Get location of stable sites.
   Usage:    get_stable_sites($rh_sites)
   Args:     $rh_sites   - A hash reference of all sites
-  Return:   A reference of hash
+  Return:   A reference of hash.
+            $rh = {
+                $location   => 1,
+            }
   
 =cut
 
