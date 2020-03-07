@@ -24,7 +24,6 @@ use 5.010;
 use strict;
 use warnings;
 
-#use Bio::SeqIO;
 #use Smart::Comments;
 
 my $usage   = << "EOS";
@@ -41,24 +40,6 @@ my $fin = shift
 my $opt = shift // 'desc';
 
 my %seqs;
-
-# Read sequences into a hash
-#my $o_seqi  = Bio::SeqIO->new(
-#    -file   => $fin,
-#    -format => 'fasta',
-#);
-#
-#my $sid = 0;
-#
-#while ( my $o_seq = $o_seqi->next_seq ) {
-#    #$seqs{ $sid }->{'seq_id'}   = $o_seq->id;
-#    #$seqs{ $sid }->{'seq_desc'} = $o_seq->desc;
-#    #$seqs{ $sid }->{'seq_str'}  = $o_seq->seq;
-#    $seqs{ $sid }->{'seq_len'}  = $o_seq->length;
-#    $seqs{ $sid }->{'seq_obj'}  = $o_seq;
-#
-#    $sid++;
-#}
 
 # Read FASTA sequences from file
 my ($seq_id, $seq_desc, $seq_str);
@@ -107,16 +88,6 @@ elsif ( $opt eq 'desc' ) {
 else {
     warn "[ERROR] Unknow sort option '$opt'!\n";
 }
-
-# Output
-#my $o_seqo  = Bio::SeqIO->new(
-#    -fh     => \*STDOUT,
-#    -format => 'fasta',
-#);
-#
-#for my $id ( @sorted_sids ) {
-#    $o_seqo->write_seq( $seqs{$id}->{'seq_obj'} );
-#}
 
 for my $seqid ( @sorted_sids ) {
     say ">", $seqid. " ", $seqs{$seqid}->{'desc'}, " ", $seqs{$seqid}->{'len'};
