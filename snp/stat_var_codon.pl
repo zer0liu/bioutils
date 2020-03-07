@@ -293,9 +293,9 @@ Args:
 Note:
   1. The First sequence of the Alignment was used as the Reference 
      sequence. And it will NOT be present in result.
-  2. Genome region file is a Tab-delimited text file. Format:
-     <Region>   <Start> <End>
-  3. Double-Check CDS ranges first!
+  2. Genome region file is a Tab-delimited text file. 
+     See regions.template file for more details.
+  3. Be sure to Double-Check CDS ranges first!
   4. Output characters:
     "u"  UTR, 5' and 3'
 	"s"  Synonynous mutation in CDS region
