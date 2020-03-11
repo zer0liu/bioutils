@@ -1,7 +1,29 @@
-# Region    Start   End
-5UTR    1   50
-CDS1    51  104
-Int1    105 200
-CDS2    201 605
-3UTR    606 670
-
+# This tab-delimited file describes the regions of a virus genome.
+# Lines begin with a '#' are looked as comments.
+# For each region (row), it contains four fields (columns):
+#   Region: Name of the region.
+#   Type:   Type of the region. 
+#       UTR
+#       CDS
+#       IGR: Intergenic region
+#   Start:  Start position of the region.
+#   End:    End position of the region.
+#
+# Regions should be listed in the genome order.
+# 
+# Sample data, described the NDV Type II, AY562991.
+#
+# RegionName    Type    Start   End
+5UTR	UTR	1	121
+N	CDS	122	1591
+Int1	IGR	1592	1886
+P	CDS	1887	3074
+Int2	IGR	3075	3289
+M	CDS	3290	4384
+Int3	IGR	4385	4543
+F	CDS	4544	6205
+Int4	IGR	6206	6411
+HN	CDS	6412	8262
+Int5	IGR	8263	8380
+L	CDS	8381	14995
+3UTR	UTR	14996   15186

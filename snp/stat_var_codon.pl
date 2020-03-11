@@ -294,7 +294,7 @@ Note:
   1. The First sequence of the Alignment was used as the Reference 
      sequence. And it will NOT be present in result.
   2. Genome region file is a Tab-delimited text file. 
-     See regions.template file for more details.
+     See *regions.template* file for more details.
   3. Be sure to Double-Check CDS ranges first!
   4. Output characters:
     "u"  UTR, 5' and 3'
@@ -359,23 +359,25 @@ sub get_seqids {
   Args:     Region file name. A string.
   Return:   A reference of array
             undef for all errors.
+  Note:     It assumes the regions in the file would be at the genome order.
+
 =cut
 
 ## For NDV Type II, ref AY562991
 #my @regions = (
-#    { name => "5UTR",    start => 1,     end => 121 },
-#    { name => "N",       start => 122,   end => 1591 },
-#    { name => "Int1",    start => 1592,  end => 1886 },
-#    { name => "P",       start => 1887,  end => 3074 },
-#    { name => "Int2",    start => 3075,  end => 3289 },
-#    { name => "M",       start => 3290,  end => 4384 },
-#    { name => "Int3",    start => 4385,  end => 4543 },
-#    { name => "F",       start => 4544,  end => 6205 },
-#    { name => "Int4",    start => 6206,  end => 6411 },
-#    { name => "HN",      start => 6412,  end => 8262 },
-#    { name => "Int5",    start => 8263,  end => 8380 },
-#    { name => "L",       start => 8381,  end => 14995 },
-#    { name => "3UTR",    start => 14996, end => 15186 },
+#    { name => "5UTR",    type => 'UTR',    start => 1,     end => 121 },
+#    { name => "N",       type => 'CDS',    start => 122,   end => 1591 },
+#    { name => "Int1",    type => 'IGR',    start => 1592,  end => 1886 },
+#    { name => "P",       type => 'CDS',    start => 1887,  end => 3074 },
+#    { name => "Int2",    type => 'IGR',    start => 3075,  end => 3289 },
+#    { name => "M",       type => 'CDS',    start => 3290,  end => 4384 },
+#    { name => "Int3",    type => 'IGR',    start => 4385,  end => 4543 },
+#    { name => "F",       type => 'CDS',    start => 4544,  end => 6205 },
+#    { name => "Int4",    type => 'IGR',    start => 6206,  end => 6411 },
+#    { name => "HN",      type => 'CDS',    start => 6412,  end => 8262 },
+#    { name => "Int5",    type => 'IGR',    start => 8263,  end => 8380 },
+#    { name => "L",       type => 'CDS',    start => 8381,  end => 14995 },
+#    { name => "3UTR",    type => 'UTR',    start => 14996, end => 15186 },
 #);
 
 sub load_regions {
@@ -391,11 +393,12 @@ sub load_regions {
         next if /^\s*$/;
         chomp();
 
-        my ($name, $start, $end)  = split /\s+/;
+        my ($name, $type, $start, $end)  = split /\s+/;
 
         my %region;
 
         $region{'name'}     = $name;
+        $region{'type'}     = $type;
         $region{'start'}    = $start;
         $region{'end'}      = $end;
 
@@ -553,11 +556,13 @@ sub out_vsites {
             {
                 1    => {
                     region  => '5UTR',   
+                    type    => 'UTR',
                     start   => 1,
                     end     => 121,
                 },
                 2      => {
                     region  => 'N',
+                    type    => 'CDS',
                     start   => 122,
                     end     => 124,
                     codon   => 'ATG',
@@ -576,7 +581,7 @@ sub parse_regions {
 
     # for my $region ( keys %regions ) {
     for my $region ( @{ $ra_regions }) {
-        if ($region->{name} =~ /UTR/) {    # UTR and Inter-gene regions
+        if ($region->{type} eq 'UTR') {    # UTR 
             $region_detail{$id}->{region}   = $region->{name};
             $region_detail{$id}->{start}    
                 = $region->{start};
@@ -586,13 +591,13 @@ sub parse_regions {
 
             $id++;
         }
-        elsif ($region->{name} =~ /Int/) {    # UTR and Inter-gene regions
+        elsif ($region->{name} eq 'IGR') {    # Intergenic Region
             $region_detail{$id}->{region}   = $region->{name};
             $region_detail{$id}->{start}    
                 = $region->{start};
             $region_detail{$id}->{end}
                 = $region->{end};
-            $region_detail{$id}->{type} = "Inter-gene";
+            $region_detail{$id}->{type} = "IGR";
 
             $id++;
         }
