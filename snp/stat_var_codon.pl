@@ -20,7 +20,7 @@
     0.2.0   2018-12-20  Deal with degenerate codon.
     0.2.1   2020-02-19  Deal with base 'N' in alignment.
     0.2.2   2020-02-19  Convert sequences in alignment to uppercase first.
-
+    0.3.0   2020-03-12  New region file format.
 =cut
 
 use 5.010;
@@ -189,7 +189,7 @@ for my $o_seq ( @o_seqs ) {
                     if ($region_type eq 'UTR') {    # UTR
                         $site_type  = 'u';
                     }
-                    elsif ($region_type eq 'Inter-gene') {  # Inter
+                    elsif ($region_type eq 'IGR') {  # Inter
                         $site_type  = 'i';
                     }
                     elsif ($region_type eq 'CDS') { # CDS
@@ -213,7 +213,8 @@ for my $o_seq ( @o_seqs ) {
                     }
                     else {
                         warn "[ERROR] Unknown region type: '", 
-                            $region->{type}, "' on region '",
+                            #$region->{type}, "' on region '",
+                            $region_type, "' on region '",
                             $region, "of location '",
                             $loc, "'\n";
                     }
@@ -591,7 +592,7 @@ sub parse_regions {
 
             $id++;
         }
-        elsif ($region->{name} eq 'IGR') {    # Intergenic Region
+        elsif ($region->{type} eq 'IGR') {    # Intergenic Region
             $region_detail{$id}->{region}   = $region->{name};
             $region_detail{$id}->{start}    
                 = $region->{start};
@@ -601,7 +602,7 @@ sub parse_regions {
 
             $id++;
         }
-        else {  # CDS regions, use each CODON as a region
+        elsif ($region->{type} eq 'CDS') {  # CDS regions, use each CODON as a region
             my $cds_start   = $region->{start};
             my $cds_end     = $region->{end};
 
@@ -611,7 +612,8 @@ sub parse_regions {
                 $cds_end - $cds_start + 1
             );
 
-            die "[ERROR] CDS leng is NOT 3-folds on ", $region->{name}
+            die "[ERROR] CDS leng is NOT 3-folds on CDS '", $region->{name}, "' with length ", 
+                    length($cds_seq), "nt.\n"
                 if (length($cds_seq) % 3);
 
             my @codons   = unpack("(A3)*", $cds_seq);
@@ -632,6 +634,9 @@ sub parse_regions {
                 $id++;
                 $num_cds++;
             }
+        }
+        else {
+            warn "[ERROR] Unidentified region type: ", $region->{type}, "\n";
         }
     }
 
