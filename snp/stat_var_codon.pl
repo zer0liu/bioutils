@@ -21,6 +21,8 @@
     0.2.1   2020-02-19  Deal with base 'N' in alignment.
     0.2.2   2020-02-19  Convert sequences in alignment to uppercase first.
     0.3.0   2020-03-12  New region file format.
+    0.3.1   2020-03-15  Output region name of variation site.
+
 =cut
 
 use 5.010;
@@ -82,7 +84,7 @@ my $o_alni  = Bio::AlignIO->new(
     -format => 'fasta',
 );
 
-# Assume there is only ONE alignment
+# Assume there is only ONE alignment, which contains multiple sequences
 my $o_aln   = $o_alni->next_aln;
 
 # Check wether the alignment is flush, i.e., all of the same length
@@ -97,22 +99,25 @@ unless ($o_aln->uppercase) {
 
 my $aln_len = $o_aln->length;
 
-# Ordered sequence ids
+# Get ordered sequence ids
 my $ra_seqids   = get_seqids( $o_aln );
 
 # Discard the first, i.e., reference, sequence
 shift @{ $ra_seqids };
 
-# Get all/variation sites information
+# Traverse each site/column of the alignment to find out 
+# stable and variation sites 
 say "[NOTE] Analysing variation sites ...";
-my $rh_sites    = parse_sites($o_aln);
+
+my $rh_all_sites    = parse_sites($o_aln);
 
 # Location of stable sites
-my $rh_ssites   = get_stable_sites($rh_sites);
+my $rh_stable_sites   = get_stable_sites($rh_all_sites);
 
 # Then output variation sites to a file 'vsites.txt'
 say "[NOTE] Output variation sites to file 'vsites.txt.'";
-out_vsites($rh_sites, "vsites.txt");
+
+out_vsites($rh_all_sites, $ra_regions, "vsites.txt");
 
 # Get all sequences in the alignment
 my @o_seqs  = $o_aln->each_seq();
@@ -124,7 +129,7 @@ my $o_refseq    = shift @o_seqs;
 say "[NOTE] Parsing variation status of each site in each sequence ...";
 
 # Parse reference region information
-my $rh_ref_regions  = parse_regions($o_refseq->seq, $ra_regions);
+my $rh_ref_regions  = parse_regions($o_refseq->seq, $ ra_regions);
 my @ref_sites       = split //, $o_refseq->seq;
 
 my %result;
@@ -159,7 +164,7 @@ for my $o_seq ( @o_seqs ) {
         my $cur_loc = $loc_idx + 1;
         
         # If output variation sites ONLY
-        next if ($F_var and $rh_ssites->{$cur_loc});
+        next if ($F_var and $rh_stable_sites->{$cur_loc});
         
         if ($seq_sites[$loc_idx] eq '-') { # A gap ('-')
             $result{$seq_id}    .= ',-';
@@ -447,19 +452,21 @@ sub parse_sites {
     my %sites;
 
     for my $i (1..$aln_len) {
-        my $o_slice_aln = $o_aln->slice($i, $i, 1); # 1-nt slice
+        # Get a 1-nt slice of alignment
+        my $o_slice_aln = $o_aln->slice($i, $i, 1); 
 
         my %items;
 
         for my $o_seq ($o_slice_aln->each_seq) {
             my $item    = $o_seq->seq;
 
-            # Dismiss gaps (i.e., '-')
+            # Gap ('-') is NOT looked as variation 
             next if ($item eq '-'); 
 
-            # Dismiss character 'N' if '-N' option is *set*
+            # Base 'N' is Not looked as a variation if '-N' option is *set*
             next if ( (defined $F_noN) && ($item eq 'N') ); 
 
+            # Also calculate the number of item
             $items{$item} = ( defined $items{$item} ) ?
                 ( $items{$item} + 1 ) : 1;
         }
@@ -500,48 +507,78 @@ sub parse_sites {
 sub get_stable_sites {
     my ($rh_sites)  = @_;
     
-    my %ssites;
+    my %stable_sites;
     
     for my $loc ( sort {$a<=>$b} keys %{ $rh_sites } ) {
         # Dismiss stable sites
-        next if ( $rh_sites->{$loc}->{'isVar'});
+        next if ( $rh_sites->{$loc}->{'isVar'} );
 
-        $ssites{$loc}   = 1;
+        $stable_sites{$loc}   = 1;
     }
     
-    return \%ssites;
+    return \%stable_sites;
+}
+
+=pod
+  Name:     region4site
+  Function: Find out the region name of a given site location
+  Usage:    region4site($loc, $ra_regions)
+  Args:     $loc        - Location (integer) of a site
+            $ra_regions - A reference to an array of region information
+=cut 
+
+sub region4site {
+    my ($loc, $ra_regs) = @_;
+
+    for my $rh_reg ( @{ $ra_regs } ) {
+        return $rh_reg->{'name'}
+            if ( $loc >= $rh_reg->{'start'} && $loc <= $rh_reg->{'end'} );
+    }
+
+    return;
 }
 
 =pod
   Name:     out_vsites
   Function: Output SNP/variation sites to a file
-  Usage:    out_vsites{$rh_sites, $fout}
+  Usage:    out_vsites{$rh_sites, $ra_regs, $fout}
   Args:     $rh_sites   - A hash reference to all sites
+            $ra_regs    - An array reference for all regions
             $fout       - A string, for output filename
   Return:   None
 =cut
 
 sub out_vsites {
-    my ($rh_sites, $fout)  = @_;
+    my ($rh_sites, $ra_regs, $fout)  = @_;
 
     open my $fh_out, ">", $fout
         or return;
+
+    # Output heading
+    say $fh_out join("\t", qw(#Location Region SNP));
 
     for my $loc ( sort {$a<=>$b} keys %{ $rh_sites } ) {
         # Dismiss stable sites
         next unless ( $rh_sites->{$loc}->{'isVar'});
 
-        print $fh_out $loc;
+        print $fh_out $loc, "\t";
 
-        #while ( my ($k, $v) = each %{$rh_sites->{$loc}->{'items'}} ) {
-        #    print $fh_out "\t", $v, $k;
-        #}
+        # Get and output related region name
+        my $rel_region_name = region4site($loc, $ra_regs);
 
-        for my $aa ( sort keys %{$rh_sites->{$loc}->{'items'}} ) {
-            print $fh_out "\t", $rh_sites->{$loc}->{'items'}->{$aa}, $aa;
+        print $fh_out $rel_region_name, "\t";
+
+        my $snp_info    = '';
+
+        for my $nt ( sort keys %{$rh_sites->{$loc}->{'items'}} ) {
+            #print $fh_out "\t", $rh_sites->{$loc}->{'items'}->{$nt}, $nt;
+            my $num_nt  = $rh_sites->{$loc}->{'items'}->{$nt};
+            $snp_info   = $snp_info . $num_nt . $nt . ', ';
         }
         
-        print $fh_out "\n";
+        $snp_info   =~ s/, $//;
+
+        print $fh_out $snp_info, "\n";
     }
 
     close $fh_out;
