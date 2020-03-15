@@ -39,20 +39,6 @@ Options:
 
 # Parse command arguments
 args <- commandArgs( trailingOnly = TRUE, asValues = TRUE )
-#args <- commandArgs( trailingOnly = TRUE)
-
-#if (length(args)==0) {
-#    stop(paste("[ERROR] At least one argument must be supplied (input file)!\n", usage), 
-#        call.=FALSE)
-#} else if (length(args)==1) {
-#    fin     <- args[1]
-#    # default output file
-#    print("[NOTE] Default output file 'vsite.pdf'.\n")
-#    fout    <- "vsite.pdf"
-#} else {
-#    fin     <- args[1]
-#    fout    <- args[2]
-#}
 
 if ( length(args$`in` ) == 0 ) {
     stop(paste("[ERROR] At least one argument must be supplied (input file)!\n", usage), 
