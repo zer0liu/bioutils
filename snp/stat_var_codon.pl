@@ -144,7 +144,7 @@ my $prog_bar    = Term::ProgressBar->new({
     ETA     => 'linear',
 });
 
-# Traverse all of the rest sequences
+# Traverse all sequences in alignment, except the reference (1st) sequence
 for my $o_seq ( @o_seqs ) {
     my $seq_id  = $o_seq->id;
     my $seq     = $o_seq->seq;
