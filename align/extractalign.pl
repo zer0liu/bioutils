@@ -18,6 +18,7 @@
     0.0.1   2015-12-01
     0.0.2   2015-12-02  Bug fix
     0.1.0   2020-03-27  Accept multiple regions
+    0.1.1   2020-03029  Finishing the new feature.
 
 =cut
 
@@ -97,9 +98,11 @@ $ofmt   = $ifmt unless ( defined $ofmt );
 #    if ($start > $end);
 
 # Parse region sets
-my $ra_regions  = parse_regions( $region )
+my $ra_regions  = parse_regions( $region );
 
-exit(1) unless ( $ra_regions );
+### $ra_regions
+
+exit(1) unless ( defined $ra_regions );
 
 # Operation alignment
 my $o_alni  = Bio::AlignIO->new(
@@ -114,9 +117,30 @@ my $o_alno  = Bio::AlignIO->new(
 
 my $o_aln   = $o_alni->next_aln;
 
-my $o_slice = $o_aln->slice($start, $end);
+#
+# User Bio::SimpleAlign method 'remove_columns' to remove columns
+#
+# Note: 
+#   The first column is 0
+#
+#
 
-$o_alno->write_aln($o_slice);
+my $aln_length  = $o_aln->length;
+
+say "[NOTE] Alignment length: $aln_length";
+
+# Convert region to region-to-be-removed
+my $ra_rm_cols = convert_regions( $ra_regions );
+
+### $ra_rm_cols
+
+# say scalar @{ $ra_rm_cols };
+
+my $o_aln_rm    = $o_aln->remove_columns( @{$ra_rm_cols} );
+
+$o_alno->write_aln( $o_aln_rm );
+
+say "[DONE] All regions extracted.";
 
 exit 0;
 
@@ -146,26 +170,71 @@ sub parse_regions {
 
     # Whether number of positions is odd
     if ( $num_pos % 2 == 1) {
-        warn "[ERROR] Odd number of positions for regions.!\n";
+        warn "[ERROR] Odd number of positions for regions: '$regions_str'.!\n";
         return;
     }
     
-    my @regions;
+    return \@pos;
+
+#    my @regions;
+#    
+#    for (my $i=0; $i<$num_pos; $i++) {
+#        my $start   = $pos[$i];
+#        my $end     = $pos[$i+1];
+#
+#        if ($start >= $end ) {
+#            warn "[ERROR] Start position '$start' >= End position '$end'!\n";
+#            return;
+#        }
+#
+#        push @regions, [$start, $end];
+#
+#        $i++;
+#    }
+#
+#    return \@regions;
+}
+
+=head2
+
+  Title:    convert_regions
+  usage:    convert_regions($ra_regions)
+  Function: Convert keep regions to remove column regions
+  Args:     An array reference
+  Return:   An array reference
+=cut
+
+sub convert_regions {
+    my ($ra_rgns)   = (@_);
+
+    my ($start, $end);
     
-    for (my $i=0; $i<$num_pos; $i++) {
-        my $start   = $pos[i];
-        my $end     = $pos[i+1];
-
-        if ($start >= $end ) {
-            warn "[ERROR] Start position '$start' >= End position '$end'!\n";
-            return;
-        }
-
-        push @regions, \($start, $end);
-
+    my $num_positions   = scalar( @{ $ra_rgns } );
+    
+    # Excluding regions
+    my @excl_rgns;
+    
+    my $i   = 0;
+    
+    $start  = 0;
+    
+    while ($i < $num_positions) {
+        $end    = shift @{ $ra_rgns };    
+        $end    = $end - 2;     # -1 -1
+    
+        push @excl_rgns, [$start, $end];
+        $i++;
+    
+        $start  = shift @{ $ra_rgns };
+        $start  = $start;       # -1 +1
         $i++;
     }
+    
+    $end    = $aln_length - 1;
+    
+    push @excl_rgns, [$start, $end];
 
-    return \@regions;
+    return \@excl_rgns;
 }
+
 
