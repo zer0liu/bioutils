@@ -17,6 +17,7 @@
 
     0.0.1   2015-12-01
     0.0.2   2015-12-02  Bug fix
+    0.1.0   2020-03-27  Accept multiple regions
 
 =cut
 
@@ -24,7 +25,7 @@ use 5.010;
 use strict;
 use warnings;
 
-
+use 5.010;
 use Bio::AlignIO;
 use File::Basename;
 use Getopt::Long;
@@ -43,8 +44,16 @@ Args:
                 Optional.
   -m <fmt>      Output file format.
                 Optional. Default same as input format.
-  -r <region>   Region to be extracted. 
-                e.g., 4-57
+  -r <region>   A set of regions to be extracted. 
+                A regions is a pair of integers, separared by any non-digit character.
+                e.g., 
+                4-57, 80-100
+                1:55, 67=123; 756..902
+                1,5, 8, 10,23,45,67,200
+Note:
+* Positions have to be pairs.
+* For a region, the start position should be lesser than end position.
+* Regions could not be overlapped.
 EOS
 
 my ($fin, $ifmt, $fout, $ofmt, $region);
@@ -72,20 +81,27 @@ unless (defined $fout) {
 }
 
 # Output file format
+# Default identical to input format
 $ofmt   = $ifmt unless ( defined $ofmt );
 
 # Parse region information
-die "[ERROR] Wrong region format!\n" 
-    unless ($region =~ /-/);
+#die "[ERROR] Wrong region format!\n" 
+#    unless ($region =~ /-/);
 
-my ($start, $end)   = split /-/, $region;
+#my ($start, $end)   = split /-/, $region;
+#
+#die "[ERROR] Please input numeric values for region.\n"
+#    unless ($start =~ /^\d+$/ && $end =~ /^\d+$/);
+#
+#die "[ERROR] The start location is greater than end location.\n"
+#    if ($start > $end);
 
-die "[ERROR] Please input numeric values for region.\n"
-    unless ($start =~ /^\d+$/ && $end =~ /^\d+$/);
+# Parse region sets
+my $ra_regions  = parse_regions( $region )
 
-die "[ERROR] The start location is greater than end location.\n"
-    if ($start > $end);
+exit(1) unless ( $ra_regions );
 
+# Operation alignment
 my $o_alni  = Bio::AlignIO->new(
     -file   => $fin,
     -format => $ifmt,
@@ -103,4 +119,53 @@ my $o_slice = $o_aln->slice($start, $end);
 $o_alno->write_aln($o_slice);
 
 exit 0;
+
+#===========================================================
+#
+#               Subroutines
+#
+#===========================================================
+
+=head2 parse_regions
+
+  Title:    parse_regions
+  Usage:    parse_regions($regions_str)
+  Funtion:  Parse region string to position pairs
+  Args:     A string for region sets.
+            Positions are integers, separated by non-digits.
+  Returns:  A reference of array
+
+=cut
+
+sub parse_regions {
+    my ($regions_str)  = @_;
+
+    my @pos = split /\D+/, $regions_str;
+
+    my $num_pos = scalar( @pos );
+
+    # Whether number of positions is odd
+    if ( $num_pos % 2 == 1) {
+        warn "[ERROR] Odd number of positions for regions.!\n";
+        return;
+    }
+    
+    my @regions;
+    
+    for (my $i=0; $i<$num_pos; $i++) {
+        my $start   = $pos[i];
+        my $end     = $pos[i+1];
+
+        if ($start >= $end ) {
+            warn "[ERROR] Start position '$start' >= End position '$end'!\n";
+            return;
+        }
+
+        push @regions, \($start, $end);
+
+        $i++;
+    }
+
+    return \@regions;
+}
 
