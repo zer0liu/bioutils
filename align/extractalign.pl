@@ -110,11 +110,6 @@ my $o_alni  = Bio::AlignIO->new(
     -format => $ifmt,
 );
 
-my $o_alno  = Bio::AlignIO->new(
-    -file   => ">$fout",
-    -format => $ofmt,
-);
-
 my $o_aln   = $o_alni->next_aln;
 
 #
@@ -130,13 +125,20 @@ my $aln_length  = $o_aln->length;
 say "[NOTE] Alignment length: $aln_length";
 
 # Convert region to region-to-be-removed
-my $ra_rm_cols = convert_regions( $ra_regions );
+my $ra_rm_cols = convert_regions( $ra_regions, $aln_length );
 
 ### $ra_rm_cols
+
+#exit;
 
 # say scalar @{ $ra_rm_cols };
 
 my $o_aln_rm    = $o_aln->remove_columns( @{$ra_rm_cols} );
+
+my $o_alno  = Bio::AlignIO->new(
+    -file   => ">$fout",
+    -format => $ofmt,
+);
 
 $o_alno->write_aln( $o_aln_rm );
 
@@ -198,17 +200,31 @@ sub parse_regions {
 =head2
 
   Title:    convert_regions
-  usage:    convert_regions($ra_regions)
+  usage:    convert_regions($ra_regions, $aln_len)
   Function: Convert keep regions to remove column regions
-  Args:     An array reference
+  Args:     $ra_regions - An array reference
+            $aln_len    - Alignment length
   Return:   An array reference
+  Note:
+                         rgn_start
+                       /
+                      |            rgn_end
+                      |          /
+                      |         |
+            1, .. 19, 20    -   50, 51 .. 69, 70  -   90, 91 .. 100
+            0   - 18, 19   ..   49, 50 -  68, 69  ..  89, 90  - 99
+            |      |
+            |       \
+            |         excl_end
+             \
+               excl_start
+
 =cut
 
 sub convert_regions {
-    my ($ra_rgns)   = (@_);
+    my ($ra_rgns, $aln_len)   = (@_);
 
-    my ($start, $end);
-    
+        
     my $num_positions   = scalar( @{ $ra_rgns } );
     
     # Excluding regions
@@ -216,23 +232,49 @@ sub convert_regions {
     
     my $i   = 0;
     
-    $start  = 0;
+    my ($rgn_start, $rgn_end, $excl_start, $excl_end);
+    my $F_seqEnd    = 0;
+
+    $excl_start     = 0;
     
     while ($i < $num_positions) {
-        $end    = shift @{ $ra_rgns };    
-        $end    = $end - 2;     # -1 -1
-    
-        push @excl_rgns, [$start, $end];
-        $i++;
-    
-        $start  = shift @{ $ra_rgns };
-        $start  = $start;       # -1 +1
-        $i++;
+        $rgn_start  = shift @{ $ra_rgns };    
+        $rgn_end    = shift @{ $ra_rgns };
+        $i          += 2;
+
+        ### $rgn_start
+        ### $rgn_end
+
+        # $excl_start = $rgn_end;         # -1 +1
+        # $excl_end   = $rgn_start - 2;   # -1 -1
+        ## $excl_start
+
+        if ($rgn_start == 1) {
+            # Get NEXT start
+            $excl_start = $rgn_end;     # -1 +1
+            next;
+        }
+        elsif ($rgn_end == $aln_len) {
+            $excl_end   = $rgn_start - 2;
+            push @excl_rgns, [$excl_start, $excl_end];
+
+            $F_seqEnd   = 1;
+
+            # next;
+        }
+        else {
+            #$excl_start = $rgn_end;
+            $excl_end   = $rgn_start - 2;   # -1 -1
+            push @excl_rgns, [$excl_start, $excl_end];
+
+            $excl_start = $rgn_end;       # -1 +1
+        }
     }
     
-    $end    = $aln_length - 1;
-    
-    push @excl_rgns, [$start, $end];
+    if ($F_seqEnd != 1) {   # If not reach the end of the alignment
+        $excl_end   = $aln_len - 1;
+        push @excl_rgns, [$excl_start, $excl_end];
+    }
 
     return \@excl_rgns;
 }
