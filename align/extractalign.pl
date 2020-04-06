@@ -18,7 +18,8 @@
     0.0.1   2015-12-01
     0.0.2   2015-12-02  Bug fix
     0.1.0   2020-03-27  Accept multiple regions
-    0.1.1   2020-03029  Finishing the new feature.
+    0.1.1   2020-03029  Attempt to create new alignments by removing multiple regions.
+    0.1.2   2020-04-07  Merge alignments manually.
 
 =cut
 
@@ -28,6 +29,7 @@ use warnings;
 
 use 5.010;
 use Bio::AlignIO;
+use Bio::SeqIO;
 use File::Basename;
 use Getopt::Long;
 
@@ -85,24 +87,12 @@ unless (defined $fout) {
 # Default identical to input format
 $ofmt   = $ifmt unless ( defined $ofmt );
 
-# Parse region information
-#die "[ERROR] Wrong region format!\n" 
-#    unless ($region =~ /-/);
-
-#my ($start, $end)   = split /-/, $region;
-#
-#die "[ERROR] Please input numeric values for region.\n"
-#    unless ($start =~ /^\d+$/ && $end =~ /^\d+$/);
-#
-#die "[ERROR] The start location is greater than end location.\n"
-#    if ($start > $end);
-
 # Parse region sets
-my $ra_regions  = parse_regions( $region );
+my $rh_regions  = parse_regions( $region );
 
-### $ra_regions
+## $rh_regions
 
-exit(1) unless ( defined $ra_regions );
+exit(1) unless ( defined $rh_regions );
 
 # Operation alignment
 my $o_alni  = Bio::AlignIO->new(
@@ -110,37 +100,26 @@ my $o_alni  = Bio::AlignIO->new(
     -format => $ifmt,
 );
 
+# Assume there were only ONE alignmenet in the file
 my $o_aln   = $o_alni->next_aln;
-
-#
-# User Bio::SimpleAlign method 'remove_columns' to remove columns
-#
-# Note: 
-#   The first column is 0
-#
-#
 
 my $aln_length  = $o_aln->length;
 
 say "[NOTE] Alignment length: $aln_length";
 
-# Convert region to region-to-be-removed
-my $ra_rm_cols = convert_regions( $ra_regions, $aln_length );
+my $rh_aln_regions  = extract_aln_regions($o_aln, $rh_regions);
 
-### $ra_rm_cols
+## $rh_aln_regions
 
-#exit;
-
-# say scalar @{ $ra_rm_cols };
-
-my $o_aln_rm    = $o_aln->remove_columns( @{$ra_rm_cols} );
+my $o_extracted_alns    = merge_aln_regions($rh_aln_regions);
 
 my $o_alno  = Bio::AlignIO->new(
-    -file   => ">$fout",
+    #-file   => ">$fout",
+    -fh     => \*STDOUT,
     -format => $ofmt,
 );
 
-$o_alno->write_aln( $o_aln_rm );
+$o_alno->write_aln( $o_extracted_alns );
 
 say "[DONE] All regions extracted.";
 
@@ -157,9 +136,9 @@ exit 0;
   Title:    parse_regions
   Usage:    parse_regions($regions_str)
   Funtion:  Parse region string to position pairs
-  Args:     A string for region sets.
+  Args:     $regions_str    - A string for region sets.
             Positions are integers, separated by non-digits.
-  Returns:  A reference of array
+  Returns:  A reference of hash
 
 =cut
 
@@ -175,108 +154,81 @@ sub parse_regions {
         warn "[ERROR] Odd number of positions for regions: '$regions_str'.!\n";
         return;
     }
-    
-    return \@pos;
 
-#    my @regions;
-#    
-#    for (my $i=0; $i<$num_pos; $i++) {
-#        my $start   = $pos[$i];
-#        my $end     = $pos[$i+1];
-#
-#        if ($start >= $end ) {
-#            warn "[ERROR] Start position '$start' >= End position '$end'!\n";
-#            return;
-#        }
-#
-#        push @regions, [$start, $end];
-#
-#        $i++;
-#    }
-#
-#    return \@regions;
+    my $i       = 0;
+    my $rgn_num = 1;
+    my %rgns;
+
+    while ($i < $num_pos) {
+        my $start   = shift @pos;
+        my $end     = shift @pos;
+
+        if ($start > $end) {
+            warn "[ERROR] START position '$start' is greater than END position '$end' in region '$regions_str'.!\n";
+            $i  += 2;
+            next;
+        }
+
+        $rgns{ $rgn_num }->{'start'} = $start;
+        $rgns{ $rgn_num }->{'end'}   = $end;
+
+        $i  += 2;
+        $rgn_num++;
+    }
+    
+    return \%rgns;
 }
 
-=head2
+=head2 extract_aln_regions
 
-  Title:    convert_regions
-  usage:    convert_regions($ra_regions, $aln_len)
-  Function: Convert keep regions to remove column regions
-  Args:     $ra_regions - An array reference
-            $aln_len    - Alignment length
-  Return:   An array reference
-  Note:
-                         rgn_start
-                       /
-                      |            rgn_end
-                      |          /
-                      |         |
-            1, .. 19, 20    -   50, 51 .. 69, 70  -   90, 91 .. 100
-            0   - 18, 19   ..   49, 50 -  68, 69  ..  89, 90  - 99
-            |      |
-            |       \
-            |         excl_end
-             \
-               excl_start
+  Title:    extract_aln_regions
+  Usage:    extract_aln_regions($o_aln, $rh_regions)
+  Function: Extract regions from $o_aln according to $rh_regions
+  Args:     $o_aln      - A Bio::SimpleAlign object
+            $rh_regions - A hash reference
+  Return:   A reference of hash
 
 =cut
 
-sub convert_regions {
-    my ($ra_rgns, $aln_len)   = (@_);
+sub extract_aln_regions {
+    my ($o_aln, $rh_rgns)   = @_;
 
+    my %aln_rgns;
+
+    for my $rgn (sort {$a<=>$b} keys %{$rh_rgns}) {
+        my $start   = $rh_rgns->{ $rgn }->{'start'};
+        my $end     = $rh_rgns->{ $rgn }->{'end'};
+
+        my $o_aln_rgn   = $o_aln->slice($start, $end);
+
+        $o_aln_rgn->set_displayname_flat;
         
-    my $num_positions   = scalar( @{ $ra_rgns } );
-    
-    # Excluding regions
-    my @excl_rgns;
-    
-    my $i   = 0;
-    
-    my ($rgn_start, $rgn_end, $excl_start, $excl_end);
-    my $F_seqEnd    = 0;
-
-    $excl_start     = 0;
-    
-    while ($i < $num_positions) {
-        $rgn_start  = shift @{ $ra_rgns };    
-        $rgn_end    = shift @{ $ra_rgns };
-        $i          += 2;
-
-        ### $rgn_start
-        ### $rgn_end
-
-        # $excl_start = $rgn_end;         # -1 +1
-        # $excl_end   = $rgn_start - 2;   # -1 -1
-        ## $excl_start
-
-        if ($rgn_start == 1) {
-            # Get NEXT start
-            $excl_start = $rgn_end;     # -1 +1
-            next;
-        }
-        elsif ($rgn_end == $aln_len) {
-            $excl_end   = $rgn_start - 2;
-            push @excl_rgns, [$excl_start, $excl_end];
-
-            $F_seqEnd   = 1;
-
-            # next;
-        }
-        else {
-            #$excl_start = $rgn_end;
-            $excl_end   = $rgn_start - 2;   # -1 -1
-            push @excl_rgns, [$excl_start, $excl_end];
-
-            $excl_start = $rgn_end;       # -1 +1
-        }
-    }
-    
-    if ($F_seqEnd != 1) {   # If not reach the end of the alignment
-        $excl_end   = $aln_len - 1;
-        push @excl_rgns, [$excl_start, $excl_end];
+        $aln_rgns{ $rgn }   = $o_aln_rgn;
     }
 
-    return \@excl_rgns;
+    return \%aln_rgns;
 }
 
+=head2 merge_aln_regions
 
+  Title:    merge_aln_regions
+  Usage:    merge_aln_regions( $rh_aln_rgns )
+  Fuction:  Merge each alignment regions
+  Args:     A hash reference of Bio::SimpleAlign objects.
+  Return:   A Bio::SimpleAlign object
+
+=cut
+
+sub merge_aln_regions {
+    my ($rh_aln_rgns)   = @_;
+
+    my $o_mg_aln;
+
+    for my $rgn (sort {$a<=>$b} keys %{ $rh_aln_rgns}) {
+        unless (defined $o_mg_aln) {
+            $o_mg_aln   = $rh_aln_rgns->{$rgn};
+        }
+    }
+
+    return $o_mg_aln;
+}
