@@ -111,17 +111,20 @@ my $rh_aln_regions  = extract_aln_regions($o_aln, $rh_regions);
 
 ## $rh_aln_regions
 
-my $o_extracted_alns    = merge_aln_regions($rh_aln_regions);
+my $o_extracted_rgns    = merge_aln_regions($rh_aln_regions);
+
+$o_extracted_rgns->set_displayname_flat();
 
 my $o_alno  = Bio::AlignIO->new(
-    #-file   => ">$fout",
-    -fh     => \*STDOUT,
+    -file   => ">$fout",
+    #-fh     => \*STDOUT,
     -format => $ofmt,
 );
 
-$o_alno->write_aln( $o_extracted_alns );
+$o_alno->write_aln( $o_extracted_rgns );
 
 say "[DONE] All regions extracted.";
+say "[DONE] Extracted regions length: ", $o_extracted_rgns->length;
 
 exit 0;
 
@@ -201,10 +204,12 @@ sub extract_aln_regions {
 
         my $o_aln_rgn   = $o_aln->slice($start, $end);
 
-        $o_aln_rgn->set_displayname_flat;
+        # $o_aln_rgn->set_displayname_flat();
         
         $aln_rgns{ $rgn }   = $o_aln_rgn;
     }
+
+    ## %aln_rgns
 
     return \%aln_rgns;
 }
@@ -225,10 +230,53 @@ sub merge_aln_regions {
     my $o_mg_aln;
 
     for my $rgn (sort {$a<=>$b} keys %{ $rh_aln_rgns}) {
-        unless (defined $o_mg_aln) {
+        unless (defined $o_mg_aln) {    # Init object
             $o_mg_aln   = $rh_aln_rgns->{$rgn};
+        }
+        else {
+            $o_mg_aln   = join_alns( $o_mg_aln, $rh_aln_rgns->{ $rgn } );
         }
     }
 
     return $o_mg_aln;
 }
+
+=head2 join_alns
+
+  Title:    join_alns
+  Usage:    join_alns($aln1, $aln2)
+  Function: Join two Bio::SimpleAlign objects
+  Args:     $aln1, $aln2    - Bio::SimpleAlign objects
+  Return:   A Bio::SimpleAlign object
+
+=cut
+
+sub join_alns {
+    my ($o_aln1, $o_aln2)   = @_;
+
+    # Parse 1st Bio::SimpleAlign object into a hash
+    my %o_aln1_seqs;
+
+    for my $o_seq ( $o_aln1->each_seq) {
+        my $seq_id  = $o_seq->id;
+        $o_aln1_seqs{ $seq_id } = $o_seq;
+    }
+
+    # The Bio::SimpleAlign object to be returned
+    my $o_aln_ret    = Bio::SimpleAlign->new();
+
+    # Append Seq objects of $o_aln2 to $o_aln1
+    for my $o_seq ( $o_aln2->each_seq ) {
+        my $seq_id  = $o_seq->id;
+        
+        my $joined_seq_str = ( $o_aln1_seqs{ $seq_id }->seq ) . ( $o_seq->seq );
+
+        # Update Seq object
+        $o_seq->seq( $joined_seq_str );
+
+        $o_aln_ret->add_seq( $o_seq );
+    }
+
+    return $o_aln_ret;
+}
+
