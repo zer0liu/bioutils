@@ -27,6 +27,7 @@
     0.0.3   2014-11-07  Fix bug for "\r" at the line end.
     0.0.4   2015-01-08  Improve description.
     0.0.5   2017-03-03  Fix bug for output NOT found IDs.
+    0.1.0   2021-01-13  Add new filed "Description".
 
 =cut
 
@@ -44,8 +45,9 @@ Usage:
   extractseq.pl <fasta file> <seqid file>
 Note:
   The format of <seqid file> is:
-  "<Seqid>    <Start>    <End>"
-  Fields have to be separated by a "\t".
+  "<Seqid>    <Start>    <End>  <Description>"
+  - Fields have to be separated by a "\t".
+  - Filed 'Description' is optional.
 EOS
 
 # Get sequence file
@@ -56,10 +58,6 @@ my $fid = shift or die $usage;
 
 # Parse seqid file '$fid'
 my $rh_ids = parse_id( $fid );
-
-# my @ids = keys %{ $rh_ids };
-
-# @ids
 
 # Hash for seq IDs: $rh_ids;
 
@@ -82,7 +80,6 @@ while (my $o_seq = $o_seqi->next_seq) {
 
     # Check whether '$id' exists in seqid file
     # 5.10.1 new featuer
-    # if ( $id ~~ %{ $rh_ids } ) {    # $id exists in seqid file
     if ( defined( $rh_ids->{$id} ) ) {
         # Seq ID: $id
 
@@ -107,7 +104,9 @@ while (my $o_seq = $o_seqi->next_seq) {
             $o_outseq = $o_seq;
         }
         
-        # $o_outseq
+        if ($rh_ids->{$id}->{'desc'}) {
+            $o_outseq->desc( $rh_ids->{$id}->{'desc'} );
+        }
 
         # Output sequence to STDOUT
         $o_seqo->write_seq( $o_outseq );
@@ -140,10 +139,10 @@ sub parse_id {
 
     my %ids;
 
-    open(FID, "<", $fid) or die
+    open(my $fh_id, "<", $fid) or die
         "Error: Open sequence id file '$fid' failed!\$!\n";
 
-    while (<FID>) {
+    while (<$fh_id>) {
         next if /^\s*$/;
         next if /^#/;
         chomp;
@@ -151,14 +150,16 @@ sub parse_id {
 
         my @items = split /\t/;
 
-        my $seqid = $items[0];
-        my $start = $items[1] || 0;
-        my $end   = $items[2] || 0;
+        my $seqid   = $items[0];
+        my $start   = $items[1] || 0;
+        my $end     = $items[2] || 0;
+        my $desc    = $items[3] // '';
 
         $ids{ $seqid }->{ "start" } = $start;
         $ids{ $seqid }->{ "end" }   = $end;
+        $ids{ $seqid }->{ "desc" }  = $desc;
     }
-    close FID;
+    close $fh_id;
 
     return \%ids;
 }
