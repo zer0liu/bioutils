@@ -11,7 +11,7 @@
     
 =head2 Seqid file format
 
-    <seqid> <start> <end>
+    <seqid> <start> <end> <description>
 
     Where <start> and <end> are optional. If both were not available, 
     simple get the whole sequence.
@@ -28,6 +28,7 @@
     0.0.4   2015-01-08  Improve description.
     0.0.5   2017-03-03  Fix bug for output NOT found IDs.
     0.1.0   2021-01-13  Add new filed "Description".
+    0.1.1   2021-01-14  All fields after "End" are dealed as Description.
 
 =cut
 
@@ -38,7 +39,7 @@ use warnings;
 use Bio::SeqIO;
 use Smart::Comments;
 
-my $usage = << "EOS";
+my $usage = << 'EOS';
 Extract and substract sequences from a multi-fasta format file and output
 to the STDOUT.
 Usage:
@@ -46,7 +47,7 @@ Usage:
 Note:
   The format of <seqid file> is:
   "<Seqid>    <Start>    <End>  <Description>"
-  - Fields have to be separated by a "\t".
+  - Fields have to be separated by a white space (' ', '\t', etc.).
   - Filed 'Description' is optional.
 EOS
 
@@ -105,7 +106,9 @@ while (my $o_seq = $o_seqi->next_seq) {
         }
         
         if ($rh_ids->{$id}->{'desc'}) {
-            $o_outseq->desc( $rh_ids->{$id}->{'desc'} );
+            my $desc    
+                = join "\t", ($start, $end, $rh_ids->{$id}->{'desc'});
+            $o_outseq->desc( $desc );
         }
 
         # Output sequence to STDOUT
@@ -114,7 +117,7 @@ while (my $o_seq = $o_seqi->next_seq) {
         $rh_ids->{$id}->{'got'} = 1;
     }
     else {
-        # warn "Get it: $id" if ($id eq 'comp78761_c0_seq2');
+        #
     }
 }
 
@@ -122,7 +125,7 @@ while (my $o_seq = $o_seqi->next_seq) {
 for my $id (keys %{ $rh_ids }) {
     ## $id
     unless ( exists $rh_ids->{$id}->{'got'} ) {
-        warn "[NOT FOUND] $id\n";
+        warn "[ERROR] '$id' not exist in the FASTA file!\n";
     }
 }
 
@@ -151,9 +154,13 @@ sub parse_id {
         my @items = split /\t/;
 
         my $seqid   = $items[0];
-        my $start   = $items[1] || 0;
-        my $end     = $items[2] || 0;
-        my $desc    = $items[3] // '';
+        my $start   = $items[1] // 0;
+        my $end     = $items[2] // 0;
+        #my $desc    = $items[3] // '';
+
+        # Concatenate rest fileds with a space (' ')
+        my $desc    = join " ", @items[3 .. $#items] 
+            if defined ( $items[3] );
 
         $ids{ $seqid }->{ "start" } = $start;
         $ids{ $seqid }->{ "end" }   = $end;
