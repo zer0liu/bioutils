@@ -16,6 +16,7 @@
 
     0.0.1   2016-01-11  Parsed by BioPerl
     0.0.2   2016-01-12  Parsed as text directly
+    0.0.3   2021-01-14  Bug fix.
 
 =cut
 
@@ -23,13 +24,12 @@ use 5.010;
 use strict;
 use warnings;
 
-#use Bio::SeqIO;
 use File::Basename;
 use Getopt::Long;
 use List::Util qw/shuffle/;
 use Switch;
 
-#use Smart::Comments;
+use Smart::Comments;
 
 my $usage = << "EOS";
 Pick random sequences/reads from a huge FASTA file.
@@ -185,8 +185,7 @@ say "Generatiing random sequence ids ...";
 
 my @rnd_seqids  = (shuffle(1..$total_num))[0..$num-1];
 
-# Sort seqids
-# my @srt_seqids  = sort {$a <=> $b} @rnd_seqids;
+### @rnd_seqids
 
 # Convert seqids array to a hash
 my %pick_seqids;
@@ -265,7 +264,7 @@ sub conv_size {
 
     return unless (defined $str);
 
-    ### $str
+    ## $str
 
     my $size;
 
@@ -398,6 +397,8 @@ sub num_seqs {
 sub pick_fa_seqs {
 	my ($fin, $fout, $rh_ids)	= @_;
 	
+    my $num_output  = 0;
+
 	# Open input file
 	open my $fh_in, "<", $fin
 		or die "[ERROR] Open input file '$fin' failed!\n$!\n";
@@ -422,10 +423,14 @@ sub pick_fa_seqs {
 	while (<$fh_in>) {
 		next if /^#/;		# Dismiss comment lines
 		next if /^\s*$/;	# Dismiss empty lines
+
+        # Here do NOT remove tailing "\n"
 		
 		if (/^>/) {	# FASTA head line
 			if ($F_OUTPUT) {	# FLAG is SET, output record
 				print $fh_out $cur_seq;
+
+                $num_output++;
 				
 				$cur_seq	= '';	# Re-init current record
 				
@@ -456,6 +461,8 @@ sub pick_fa_seqs {
 	close $fh_in;
 
 	close $fh_out;
+
+    #say '---+> ', $num_output;
 	
 	return 1;
 }
