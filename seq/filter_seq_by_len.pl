@@ -12,15 +12,11 @@ use Smart::Comments;
 my $usage = << "EOS";
 Filter sequences in a multi-FASTA file by length.
 Usage:
-  filter_seq_by_len.pl -i <fseq> -o <fseq> [--min <len> | --max <len>]
+  filter_seq_by_len.pl -i <fseq> -o <fseq> [--gt <len> | --lt <len>]
 Note:
-  Length: --------------------------------------------------------------->
-                             ^                        ^
-                            min                      max
-  * <Min> and <max> must provide at least one.
-  * If provided both, output sequences of which length between <min> and <max>.
-  * If provided <min> only, output all sequences longer than <min>.
-  * If provided <max> only, output all sequences shorter than <max>.
+  * <gt> and <lt> must provide at least one.
+  * If provided <gt> only, output all sequences longer than <len>.
+  * If provided <lt> only, output all sequences shorter than <len>.
 EOS
 
 my ($fin, $fout, $min, $max);
@@ -28,8 +24,8 @@ my ($fin, $fout, $min, $max);
 GetOptions(
     "i=s"   => \$fin,
     "o=s"   => \$fout,
-    "min=i" => \$min,
-    "max=i" => \$max,
+    "gt=i" => \$min,
+    "lt=i" => \$max,
     "h"     => sub { warn $usage; }
 );
 
