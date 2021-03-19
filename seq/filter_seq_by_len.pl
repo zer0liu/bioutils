@@ -1,5 +1,24 @@
 #!/usr/bin/perl
 
+=head1 NAME
+
+    filter_seq_by_len.pl - Return sequences which length in given range.
+
+=head1 SYNOPSIS
+
+=head1 DESCRIPTION
+
+=head1 AUTHOR
+
+    zeroliu-at-gmail-dot-com
+
+=head1 VERSION
+
+    0.0.1   2020-07-01
+    0.1.0   2021-03-17  Modified for better comprehensive.
+
+=cut
+
 use 5.12.1;
 use strict;
 use warnings;
@@ -31,11 +50,11 @@ GetOptions(
 
 die "[ERROR] An input multi-FASTA file name needed!\n\n$usage\n" unless (defined $fin);
 
-die "[ERROR] <min> and <max> must provide at least one!\n\n$usage\n" 
+die "[ERROR] <gt> and <lt> must provide at least one!\n\n$usage\n" 
     unless ( (defined $min) || (defined $max) );
 
 if ( (defined $min) && (defined $max) ) {
-    die "[ERROR] <min> must less than or equal to <max>!\n\n$usage\n" if ($min > $max)
+    die "[ERROR] <gt> must less than or equal to <lt>!\n\n$usage\n" if ($min > $max)
 }
 
 # Generate output filename if necessary
@@ -65,16 +84,22 @@ while (my $o_seq = $o_seqi->next_seq) {
     my $seq_len = $o_seq->length;
 
     if ( (defined $max) && (defined $min) ) {
-        $o_seqo->write_seq( $o_seq ) if ( $seq_len >= $min && $seq_len <= $max );
-        $get_num++;
+        if ( $seq_len >= $min && $seq_len <= $max ) {
+            $o_seqo->write_seq( $o_seq );
+            $get_num++;
+        }
     }
     elsif ( defined ($min) ) {
-        $o_seqo->write_seq( $o_seq ) if ( $seq_len >= $min );
-        $get_num++;
+        if ( $seq_len >= $min ) {
+            $o_seqo->write_seq( $o_seq );
+            $get_num++;
+        }
     }
     elsif ( defined ($max) ) {
-        $o_seqo->write_seq( $o_seq ) if ( $seq_len <= $max );
-        $get_num++;
+        if ( $seq_len <= $max ) {
+            $o_seqo->write_seq( $o_seq );
+            $get_num++;
+        }
     }
     else {
         warn "[ERROR] Why I'm here?!";
