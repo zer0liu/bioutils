@@ -38,7 +38,7 @@ GetOptions(
     "f=s"   => \$fmt,
     "r=s"   => \$refid,
     "o=s"   => \$fout,
-    "v"     => \F_VAR_ONLY,
+    "v"     => \$F_VAR_ONLY,
     "h"     => sub { usage() },
 );
 
@@ -88,12 +88,13 @@ open(my $fh_out, ">", $fout)
 say $fh_out join("\t", ("#Location", "Reference", "Variations"));
 
 for my $i (1 .. $aln_len) {
-
     if ( $F_VAR_ONLY ) {    # Only output variation location/sites
         next if ( $rh_all_sites->{$i}->{'isVar'} == 0 );
 
         print $i, "\t", \           # Location
             $ref_items[$i-1], "\t"; # Reference item
+
+        $i  = "$i";     # Convert to string
 
         my $rh_items    = $rh_all_sites->{$i}->{'items'};
 
@@ -111,6 +112,8 @@ for my $i (1 .. $aln_len) {
     else {
         print $i, "\t", \           # Location
             $ref_items[$i-1], "\t"; # Reference item
+
+        $i  = "$i";
 
         my $rh_items    = $rh_all_sites->{$i}->{'items'};
 
@@ -228,6 +231,8 @@ sub parse_sites {
             $items{ $item } = (defined $items{$item}) ?
                 ( $items{$item} + 1) : 1;
         }
+
+        $i  = "$i";
 
         if ( scalar (keys %items) >= 2 ) {
             $sites{$i}->{'isVar'}   = 1;
