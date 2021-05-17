@@ -174,7 +174,7 @@ sub generate_output_file_name {
 
     my ($basename, $dir, $suffix)   = fileparse($fname, qr/\..*$/);
 
-    my $fout_name   = $basename . '.' . 'snp.txt';
+    my $fout_name   = $basename . '_snp.txt';
 
     return($fout_name);
 }
