@@ -94,13 +94,13 @@ for my $i (1 .. $aln_len) {
         print $i, "\t", \           # Location
             $ref_items[$i-1], "\t"; # Reference item
 
-        $i  = "$i";     # Convert to string
+        # $i  = "$i";     # Convert to string
 
         my $rh_items    = $rh_all_sites->{$i}->{'items'};
 
         my $item_str    = '';
 
-        for my $item (sort keys $rh_items) {
+        for my $item (sort keys %{ $rh_items }) {
             $item_str   = $item_str . ', ' . \
                 $rh_items->{$item}  . $item;
         }
@@ -113,13 +113,13 @@ for my $i (1 .. $aln_len) {
         print $i, "\t", \           # Location
             $ref_items[$i-1], "\t"; # Reference item
 
-        $i  = "$i";
+        #$i  = "$i";
 
         my $rh_items    = $rh_all_sites->{$i}->{'items'};
 
         my $item_str    = '';
 
-        for my $item (sort keys $rh_items) {
+        for my $item (sort keys %{ $rh_items }) {
             $item_str   = $item_str . ', ' . \
                 $rh_items->{$item}  . $item;
         }
@@ -232,7 +232,7 @@ sub parse_sites {
                 ( $items{$item} + 1) : 1;
         }
 
-        $i  = "$i";
+        # $i  = "$i";
 
         if ( scalar (keys %items) >= 2 ) {
             $sites{$i}->{'isVar'}   = 1;
