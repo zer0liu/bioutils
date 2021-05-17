@@ -91,17 +91,15 @@ for my $i (1 .. $aln_len) {
     if ( $F_VAR_ONLY ) {    # Only output variation location/sites
         next if ( $rh_all_sites->{$i}->{'isVar'} == 0 );
 
-        print $i, "\t", \           # Location
+        print $fh_out $i, "\t",     # Location
             $ref_items[$i-1], "\t"; # Reference item
-
-        # $i  = "$i";     # Convert to string
 
         my $rh_items    = $rh_all_sites->{$i}->{'items'};
 
         my $item_str    = '';
 
         for my $item (sort keys %{ $rh_items }) {
-            $item_str   = $item_str . ', ' . \
+            $item_str   = $item_str . ', ' . 
                 $rh_items->{$item}  . $item;
         }
 
@@ -110,17 +108,15 @@ for my $i (1 .. $aln_len) {
         print $fh_out $item_str, "\n";
     }
     else {
-        print $i, "\t", \           # Location
+        print $fh_out $i, "\t",             # Location
             $ref_items[$i-1], "\t"; # Reference item
-
-        #$i  = "$i";
 
         my $rh_items    = $rh_all_sites->{$i}->{'items'};
 
         my $item_str    = '';
 
         for my $item (sort keys %{ $rh_items }) {
-            $item_str   = $item_str . ', ' . \
+            $item_str   = $item_str . ', ' . 
                 $rh_items->{$item}  . $item;
         }
 
