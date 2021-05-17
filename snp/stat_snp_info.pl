@@ -28,15 +28,17 @@ use Getopt::Long;
 use Smart::Comments;
 use Term::ProgressBar;
 
-my ($faln, $fmt, $refid, $fout);
+my ($faln, $fmt, $refid, $fout, $F_var);
 
-$fmt    = 'fasta';
+$fmt        = 'fasta';
+$F_VAR_ONLY = 0;        # Default output all location/sites
 
 GetOptions(
     "i=s"   => \$faln,
     "f=s"   => \$fmt,
     "r=s"   => \$refid,
     "o=s"   => \$fout,
+    "v"     => \F_VAR_ONLY,
     "h"     => sub { usage() },
 );
 
@@ -71,7 +73,7 @@ die "[ERROR] Get reference sequence failed!\n"
 
 my $refseq_str  = $o_refseq->seq;
 
-# my @ref_items   = split(//, $refeq_str);
+my @ref_items   = split(//, $refeq_str);
 
 # Parse alignment variation
 my $rh_all_sites    = parse_sites($o_aln);
@@ -83,7 +85,47 @@ $fout   = generate_output_file_name($faln)
 open(my $fh_out, ">", $fout)
     or die("[ERROR] Create output file '$fout' failed!\n$!\n");
 
+say $fh_out join("\t", ("#Location", "Reference", "Variations"));
 
+for my $i (1 .. $aln_len) {
+
+    if ( $F_VAR_ONLY ) {    # Only output variation location/sites
+        next if ( $rh_all_sites->{$i}->{'isVar'} == 0 );
+
+        print $i, "\t", \           # Location
+            $ref_items[$i-1], "\t"; # Reference item
+
+        my $rh_items    = $rh_all_sites{$i}->{'items'};
+
+        my $item_str    = '';
+
+        for my $item (sort keys $rh_items) {
+            $item_str   = $item_str . ', ' . \
+                $rh_items->{$item}  . $item;
+        }
+
+        $item_str   =~  s/^,//;
+
+        print $fh_out $item_str, "\n";
+    }
+    else {
+        print $i, "\t", \           # Location
+            $ref_items[$i-1], "\t"; # Reference item
+
+        my $rh_items    = $rh_all_sites{$i}->{'items'};
+
+        my $item_str    = '';
+
+        for my $item (sort keys $rh_items) {
+            $item_str   = $item_str . ', ' . \
+                $rh_items->{$item}  . $item;
+        }
+
+        $item_str   =~  s/^,//;
+
+        print $fh_out $item_str, "\n";
+    }
+}
 
 close($fh_out);
 
