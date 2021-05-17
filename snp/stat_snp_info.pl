@@ -28,7 +28,7 @@ use Getopt::Long;
 use Smart::Comments;
 use Term::ProgressBar;
 
-my ($faln, $fmt, $refid, $fout, $F_var);
+my ($faln, $fmt, $refid, $fout, $F_VAR_ONLY);
 
 $fmt        = 'fasta';
 $F_VAR_ONLY = 0;        # Default output all location/sites
@@ -73,7 +73,7 @@ die "[ERROR] Get reference sequence failed!\n"
 
 my $refseq_str  = $o_refseq->seq;
 
-my @ref_items   = split(//, $refeq_str);
+my @ref_items   = split(//, $refseq_str);
 
 # Parse alignment variation
 my $rh_all_sites    = parse_sites($o_aln);
@@ -95,7 +95,7 @@ for my $i (1 .. $aln_len) {
         print $i, "\t", \           # Location
             $ref_items[$i-1], "\t"; # Reference item
 
-        my $rh_items    = $rh_all_sites{$i}->{'items'};
+        my $rh_items    = $rh_all_sites->{$i}->{'items'};
 
         my $item_str    = '';
 
@@ -112,7 +112,7 @@ for my $i (1 .. $aln_len) {
         print $i, "\t", \           # Location
             $ref_items[$i-1], "\t"; # Reference item
 
-        my $rh_items    = $rh_all_sites{$i}->{'items'};
+        my $rh_items    = $rh_all_sites->{$i}->{'items'};
 
         my $item_str    = '';
 
