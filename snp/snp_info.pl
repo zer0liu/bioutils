@@ -8,6 +8,14 @@
 
 =head1 DESCRIPTION
 
+=head2 Reference sequence
+
+    If not specified by option `-r`, the first sequence in the alignment 
+    will be used as the reference. 
+
+    Otherwise, `-r` option accepts a sequence ID in the alignment, and 
+    this sequence will be used as the reference sequence.
+
 =head1 AUTHOR
 
     zeroliu-at-gmail-dot=com
@@ -26,7 +34,7 @@ use warnings;
 use Bio::AlignIO;
 use File::Basename;
 use Getopt::Long;
-use Smart::Comments;
+#use Smart::Comments;
 use Term::ProgressBar;
 
 my ($faln, $fmt, $refid, $fout, $F_VAR_ONLY);
@@ -160,8 +168,8 @@ Arguments:
                 Default output all sites.
 Note:
   1. There must be only ONE alignment in the file.
-  2. If reference sequence were not given, the FIRST sequence of the 
-     alignment file is used as the reference.
+  2. If reference sequence were not specified by option `-r`, the FIRST 
+     sequence of the alignment file is used as the reference.
   3. The reference sequence is also used in statistics.
 EOS
 }
