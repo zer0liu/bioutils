@@ -2,20 +2,20 @@
 
 =head1 NAME
 
-    snp_info.pl - Statistics and show SNP information of an alignment.
+    snp_info.pl - Statistics SNP information of an alignment.
 
-=SYNOPSIS
+=head1 SYNOPSIS
 
-=DESCRIPTION
+=head1 DESCRIPTION
 
-=AUTHOR
+=head1 AUTHOR
 
-    zeroliu-at-gmail-dot-com
+    zeroliu-at-gmail-dot=com
 
-=VERSION
+=head1 VERSION
 
-    0.0.1   2019-01-07
-    0.1.0   2021-05-17
+    0.0.1   2021-05-17  Init.
+    0.0.2   2021-05-18  Fix bugs.
 
 =cut
 
@@ -24,293 +24,227 @@ use strict;
 use warnings;
 
 use Bio::AlignIO;
-use Bio::SeqIO;
+use File::Basename;
 use Getopt::Long;
-use Scalar::Util qw(blessed);
 use Smart::Comments;
+use Term::ProgressBar;
 
-my ($faln, $fmt, $fref, $fout);
+my ($faln, $fmt, $refid, $fout, $F_VAR_ONLY);
 
-$fmt    = 'fasta';  # Default format value
+$fmt        = 'fasta';
+$F_VAR_ONLY = 0;        # Default output all location/sites
 
 GetOptions(
-    'i=s'   => \$faln,
-    'f=s'   => \$fmt,
-    'r=s'   => \$fref,
-    'o=s'   => \$fout,
-    'h'     => \&usage,
+    "i=s"   => \$faln,
+    "f=s"   => \$fmt,
+    "r=s"   => \$refid,
+    "o=s"   => \$fout,
+    "v"     => \$F_VAR_ONLY,
+    "h"     => sub { usage() },
 );
 
-unless ($faln)  {
-    warn "[ERROR] Input alignemt file is required!\n";
-    usage();
-    die;
+die usage() unless (defined $faln);
+
+my $o_alni  = Bio::AlignIO->new(
+    -file   => $faln,
+    -format => $fmt,
+);
+
+# Assume there were only 1 alignment in the file
+my $o_aln   = $o_alni->next_aln;
+
+# Check whether the alignment is flush, i.e., all of the same length
+unless ($o_aln->is_flush) {
+    die "[ERROR] Sequences in the alignment are NOT in the same length!\n";
 }
 
-if (defined $fref) {
-    if (check_gbk_file($fref)   == 1) {
-        say "[OK] Reference annotation file ok.";
+# Set to upper case
+unless ($o_aln->uppercase) {
+    die "[ERROR] Convert sequences to uppercase failed!\n";
+}
+
+# Alignment length
+my $aln_len = $o_aln->length;
+
+# Get reference sequence object.
+my $o_refseq    = get_ref_seq($o_aln, $refid);
+
+die "[ERROR] Get reference sequence failed!\n" 
+    unless (defined $o_refseq);
+
+my $refseq_str  = $o_refseq->seq;
+
+my @ref_items   = split(//, $refseq_str);
+
+# Parse alignment variation
+my $rh_all_sites    = parse_sites($o_aln);
+
+# Output to file
+$fout   = generate_output_file_name($faln) 
+    unless (defined $fout);
+
+open(my $fh_out, ">", $fout)
+    or die("[ERROR] Create output file '$fout' failed!\n$!\n");
+
+say $fh_out join("\t", ("#Location", "Reference", "Variations"));
+
+for my $i (1 .. $aln_len) {
+    if ( $F_VAR_ONLY ) {    # Only output variation location/sites
+        next if ( $rh_all_sites->{$i}->{'isVar'} == 0 );
+
+        print $fh_out $i, "\t",     # Location
+            $ref_items[$i-1], "\t"; # Reference item
+
+        my $rh_items    = $rh_all_sites->{$i}->{'items'};
+
+        my $item_str    = '';
+
+        for my $item (sort keys %{ $rh_items }) {
+            $item_str   = $item_str . ', ' . 
+                $rh_items->{$item}  . $item;
+        }
+
+        $item_str   =~  s/^,//;
+
+        print $fh_out $item_str, "\n";
     }
     else {
-        warn "[ERROR] Input file '$fref' is NOT a GenBank flat file!\n";
-        warn "Consider to re-run script without reference genome.\n";
-        exit 1;
+        print $fh_out $i, "\t",             # Location
+            $ref_items[$i-1], "\t"; # Reference item
+
+        my $rh_items    = $rh_all_sites->{$i}->{'items'};
+
+        my $item_str    = '';
+
+        for my $item (sort keys %{ $rh_items }) {
+            $item_str   = $item_str . ', ' . 
+                $rh_items->{$item}  . $item;
+        }
+
+        $item_str   =~  s/^,//;
+
+        print $fh_out $item_str, "\n";
     }
 }
 
-# Parse gene/CDS name and range(s)
-my $rh_gene_loc = parse_gbk_feature($fref);
+close($fh_out);
+
+exit 0;
+
 
 #===========================================================
 #
-#                   Subroutines
+#               Subroutines
 #
 #===========================================================
 
-=pod
-
-  Name:     usage
-  Usage:    usage()
-  Function: Display usage information
-  Args:     None
-  Returns:  None
-
-=cut
+#
+# usage
+#
 
 sub usage {
-    say << 'EOS';
-Show SNP information of an alignment and their location in ORFs.
+    warn << "EOS";
+Statistics SNP information of a sequence alignment.
 Usage:
-  snp_info.pl -i <faln> -f <format> [-r <fref>] [-o <fout>]
-Args:
-  -i <faln>     Input alignment file.
-  -f <format>   Alignment file format. Default: fasta.
-                Optional.
-  -r <fref>     Reference file, in Genbank flat file format.
-                Optional.
-  -o <fout>     Output text file.
-                Optional.
+  snp_info.pl -i <MSA> [-f <format>] [-r <refid>] [-o <output>] [-v]
+Arguments:
+  -i <MSA>:     Input multiple sequence alignment file.
+  -f <format>:  MSA file format. Default 'fasta'.
+                Other supported file format include: 
+                    clustalw, mega, nexus, etc.
+                More formats and details, see:
+                    https://metacpan.org/pod/Bio::AlignIO
+  -r <refid>:   A string for reference sequence id. Optional.
+  -o <output>:  Output SNP infomation file. Optional.
+  -v:           Output variation/SNP sites only. 
+                Default output all sites.
 Note:
-  1. The first sequence of the alignment file would be used as the
-     reference of the whole alignment.
-  2. It will out put two SNP locations, one based on the alignment, 
-     the other on the reference sequence.
-  3. The <fref> file contains the annotation in GenBank flat file format
-     of the first sequence of the alignment file.
-  4. The range(s) of a gene/CDS was retrieved from "CDS" primary tag.
+  1. There must be only ONE alignment in the file.
+  2. If reference sequence were not given, the FIRST sequence of the 
+     alignment file is used as the reference.
+  3. The reference sequence is also used in statistics.
 EOS
 }
 
-=pod
+#
+# generate_output_file_name
+#
 
-  Name:     parse_gbk_feature
-  Usage:    parse_gbk_feature($fgbk)
-  Function: Parse feature table of given GenBank flat file, return
-            gene/CDS name and range.
-  Args:     A GenBank flat file name.
-  Returns:  A reference of a hash.
-            undef - Any errors.
+sub generate_output_file_name {
+    my ($fname) = @_;
 
-=cut
+    my ($basename, $dir, $suffix)   = fileparse($fname, qr/\..*$/);
 
-sub parse_gbk_feature {
-    my ($fgbk)  = @_;
+    my $fout_name   = $basename . '_snp.txt';
 
-    my $o_seqi  = Bio::SeqIO->new(
-        -file   => $fgbk,
-        -format => 'genbank'
-    );
-
-    my $o_seq   = $o_seqi->next_seq;
-
-    my %gene_locs;
-
-    for my $o_feat ($o_seq->get_SeqFeatures) {
-        if ($o_feat->primary_tag eq 'CDS') {
-            my ($gene, $range);
-
-            # Get 'gene'
-            if ($o_feat->has_tag('gene')) {
-                ($gene,)    = $o_feat->get_tag_values('gene');
-            }
-            # Use 'product' to represent 'gene'
-            elsif ($o_feat->has_tag('product')) {  
-                ($gene, )   = $o_feat->get_tag_values('product');
-            }
-            else {
-                warn "[ERROR] Unable to identify gene/CDS name!\n";
-                $gene   = 'Unknown';
-            }
-
-            # Get range
-
-            # say "[TEST] ", $o_feat->location->to_FTstring;
-
-=pod {{{
-            if ($o_feat->location->isa('Bio::Location::Simple')) {
-                $range  = $o_feat->location->start . '..' .
-                    $o_feat->location->end;
-            }
-            elsif ($o_feat->location->isa('Bio::Location::Split')) {
-                for my $location ($o_feat->location->sub_Location) {
-                    $range  .= ',' if (defined $range);
-                    $range  .= $location->start . '..' . $location->end;
-                }
-            }
-            elsif ($o_feat->location->isa('Bio::Location::Fussy')) {
-                #
-            }
-            elsif ($o_feat->location->isa('Bio::Location::Atomic')) {
-                #
-            }
-            else {
-                warn "[ERROR] Unidentified BioPerl Location object: '",
-                    blessed( $o_feat->location ), "' on gene/CDS '" ,
-                    $gene, "'\n";
-            }
-=cut }}}
-
-            my $loc_str = $o_feat->location->to_FTstring;
-            
-            # 'complement' field, for future use
-            if ($loc_str =~ /complement/) {
-                $gene_locs{ $gene }->{ 'complement' }   = 1;
-            }
-            else {
-                $gene_locs{ $gene }->{ 'complement' }   = 0;
-            }
-
-            # 'join' field, for future use
-            if ($loc_str =~ /join/) {
-                $gene_locs{ $gene }->{ 'join' } = 1;
-            }
-            else {
-                $gene_locs{ $gene }->{ 'join' } = 0;
-            }
-
-
-            # 'range' field, store locations ONLY
-            if ($loc_str =~ /([\d\.\,\s]+)/) {
-                $gene_locs{ $gene }->{ 'range' }    = $1;
-            }
-            else {
-                warn "[ERROR] Unidentified range: '", $loc_str, "'\n";
-                $gene_locs{ $gene }->{ 'range' }    = undef;
-            }
-        }
-    }
-
-    ## %gene_locs
-
-    return \%gene_locs;
+    return($fout_name);
 }
 
-=pod
+#
+# get_ref_seq
+#
+# This subroutine accepts 1 or 2 arguments.
 
-  Name:     check_gbk_file
-  Usage:    check_gbk_file($fgbk)
-  Function: Check wether a file is in GenBank flat file format.
-            It checks the starting 'LOCUS' and ending '//'.
-  Args:     A file name.
-  Returns:  1   - Is a GenBank flat file.
-            0   - Not.
+sub get_ref_seq {
+    my ($o_aln, $seqid) = @_;
 
-=cut
+    my $o_ref;
 
-sub check_gbk_file {
-    my ($fgbk)  = @_;
+	if (defined $seqid) {   # If given sequence id
+	    $o_ref  = $o_aln->get_seq_by_id( $seqid );
+	}
+	else {  # No seq id given, use the first seq as the reference
+	    $o_ref  = $o_aln->get_seq_by_pos(1);
+	}
 
-    my ($F_start, $F_end)   = (0, 0);
-
-    open my $fh_in, "<", $fgbk;
-
-    while (<$fh_in>) {
-        next if /^#/;
-        next if /^\s*$/;
-        chomp;
-
-        $F_start++ if /^LOCUS/; # Starting with 'LOCUS'
-        $F_end++ if /\/\//;     # Ending with '//'
-    }
-
-    if ($F_start > 0 and $F_end > 0 and $F_start == $F_end) {
-        return 1;   # Probably a (multiple) GenBank flat file
-    }
-    else {
-        return 0;   # Not a (multiple) GenBank flat file
-    }
+    return($o_ref);
 }
 
-=pod
+#
+# parse_sites
+#
 
-  Name:     parse_aln
-  Usage:    parse_aln( $faln )
-  Function: Parse alignment file
-  Args:     A string for alignment file
-  Returns:  A referene of hash for nucleotide compsitions in each site.
-            {
-                $location   => {
-                    isVar   => 1,   # BOOL, 
-                    items   => {
-                        A   => 1,
-                        C   => 5,
-                        G   => 3,
-                        T   => 7,
-                        ...
-                    },
-                },
-            }
-  Note:     It assumes there is ONLY one alignemt in the file.
+sub parse_sites {
+    my ($o_aln) = @_;
 
-=cut
-
-sub parse_aln {
-    my ($faln, $fmt)  = @_;
-
-    my $o_alni  = Bio::SeqIO->new(
-        -file   => $faln,
-        -format => $fmt,
-    );
-
-    my $o_aln   = $o_alni->next_aln;
-
-    my $aln_len = $o_aln->length;
+    my $prog_bar    = Term::ProgressBar->new({
+        name    => 'Sites:',
+        count   => $aln_len,
+        ETA     => 'linear',
+    });
 
     my %sites;
 
-    for my $i (1 .. $aln_len)   {   # Aligment starts from '1'
-        my $o_aln_slice = $o_aln->slice($i, $i, 1);
+    my $aln_len = $o_aln->length;
+
+    for my $i (1 .. $aln_len) {
+        my $o_slice_aln = $o_aln->slice($i, $i, 1);
 
         my %items;
 
-        for my $o_seq ($o_aln_slice->each_seq)  {
-            my $item    = $o_seq->seq;  # Get single characters
+        for my $o_seq ($o_slice_aln->each_seq) {
+            my $item    = $o_seq->seq;
 
-            # Here works on any characters, including '-'
-
-            $items{ $item } = ( defined $items{ $item } ) ?
-                $items{ $item } + 1 : 1;
-
-            if ( scalar ( keys %items ) >= 2 ) {
-                $sites{ $i }->{ 'isVar' }   = 1;    # is variation site
-                $sites{ $i }->{ 'items' }   = \%items;
-            }
-            else {
-                $sites{ $i }->{ 'isVar' }   = 0;    # Stable site
-                $sites{ $i }->{ 'items' }   = \%items;
-            }
+            $items{ $item } = (defined $items{$item}) ?
+                ( $items{$item} + 1) : 1;
         }
+
+        # $i  = "$i";
+
+        if ( scalar (keys %items) >= 2 ) {
+            $sites{$i}->{'isVar'}   = 1;
+            $sites{$i}->{'items'}   = \%items;
+        }
+        else {
+            $sites{$i}->{'isVar'}   = 0;
+            $sites{$i}->{'items'}   = \%items;
+        }
+
+        $prog_bar->update($_);
     }
 
-    return \%sites;
+    $prog_bar->update($aln_len);
+
+    return(\%sites);
 }
 
-=pod
-
-  Name:     parse_snps
-  Usage:    parse_snps($rh_site, )
-  Function: Parse SNP sites and related information
-  Args:     $rh_site - Reference of hash for each site information
-            $rh_feat - Reference of hash for 
-
-=cut
