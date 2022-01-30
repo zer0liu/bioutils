@@ -20,6 +20,7 @@
     0.1.0   2020-03-27  Accept multiple regions
     0.1.1   2020-03029  Attempt to create new alignments by removing multiple regions.
     0.1.2   2020-04-07  Merge alignments manually.
+    0.1.3   2022-01-30  Keep gap-only columns in new created columns.
 
 =cut
 
@@ -202,7 +203,7 @@ sub extract_aln_regions {
         my $start   = $rh_rgns->{ $rgn }->{'start'};
         my $end     = $rh_rgns->{ $rgn }->{'end'};
 
-        my $o_aln_rgn   = $o_aln->slice($start, $end);
+        my $o_aln_rgn   = $o_aln->slice($start, $end, 1);
 
         # $o_aln_rgn->set_displayname_flat();
         
