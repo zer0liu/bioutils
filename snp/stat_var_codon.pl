@@ -22,7 +22,8 @@
     0.2.2   2020-02-19  Convert sequences in alignment to uppercase first.
     0.3.0   2020-03-12  New region file format.
     0.3.1   2020-03-15  Output region name of variation site.
-
+    0.4.0   2023-07-09  Add note: Remove 'N's in aligned sequences first, 
+                        to avoid synonymous/non-synonymous analysis errors.
 =cut
 
 use 5.010;
@@ -297,6 +298,7 @@ Args:
   -N            Base 'N' is not considered as a variation. Optional.
                 Default 'N' is considered as a normal base.
 Note:
+  0. !!IMPORTANT!! Replace all 'N' or 'n' with '-' before use!
   1. The First sequence of the Alignment was used as the Reference 
      sequence. And it will NOT be present in result.
   2. Genome region file is a Tab-delimited text file. 
