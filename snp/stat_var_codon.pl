@@ -24,6 +24,7 @@
     0.3.1   2020-03-15  Output region name of variation site.
     0.4.0   2023-07-09  Add note: Remove 'N's in aligned sequences first, 
                         to avoid synonymous/non-synonymous analysis errors.
+    0.4.1   2024-01-26  Use files basename for var and vsite files.
 =cut
 
 use 5.010;
