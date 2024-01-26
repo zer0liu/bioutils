@@ -48,7 +48,7 @@ my ($faln, $fregion, $fout, $F_var, $F_noN);
 GetOptions(
     'a=s'   => \$faln,          # Input alignment file
     'r=s'   => \$fregion,       # Input region file
-    'o=s'   => \$fout,          # Output file
+    'o=s'   => \$fout,          # Output files basename
     'v'     => \$F_var,         # Flag, whether output variation sites only
     'N'     => \$F_noN,         # Flag, whether dismiss N in sequence
     'h'     => sub { usage(); exit 1 },
@@ -73,12 +73,19 @@ my $ra_regions  = load_regions( $fregion );
 
 ## $ra_regions
 
+# Parse output file basename if necessary
 unless (defined $fout) {
     $fout   = out_filename($faln);
 
     die '[ERROR] Failed to generate output filename!\n'
         unless ($fout);
 }
+
+# Output variation filename
+my $fout_var     = $fout . '_var.txt';
+
+# Output variation sites name
+my $fout_vsites  = $fout . '_vsites.txt';
 
 my $o_alni  = Bio::AlignIO->new(
     -file   => $faln,
@@ -116,9 +123,9 @@ my $rh_all_sites    = parse_sites($o_aln);
 my $rh_stable_sites   = get_stable_sites($rh_all_sites);
 
 # Then output variation sites to a file 'vsites.txt'
-say "[NOTE] Output variation sites to file 'vsites.txt.'";
+say "[NOTE] Output variation sites to file '$fout_vsites'.";
 
-out_vsites($rh_all_sites, $ra_regions, "vsites.txt");
+out_vsites($rh_all_sites, $ra_regions, $fout_vsites);
 
 # Get all sequences in the alignment
 my @o_seqs  = $o_aln->each_seq();
@@ -241,11 +248,11 @@ for my $o_seq ( @o_seqs ) {
 $prog_bar->update($prog_bar_max);
 
 ## %result
-say "[NOTE] Output result file '$fout' ...\n";
+say "[NOTE] Output result file '$fout_var' ...\n";
 
 # Output result to result file
-open my $fh_out, ">", $fout or
-    die "[ERROR] Create output file '$fout' failed!\n$!\n";
+open my $fh_out, ">", $fout_var or
+    die "[ERROR] Create output file '$fout_var' failed!\n$!\n";
 
 # Output file header
 say $fh_out join "\t", qw(Strain Location Value);
@@ -292,7 +299,7 @@ stat_var_codon.pl -a <faln> -r <fregion> [-o <fout>] [-v]
 Args:
   -a <faln>     Alignment file. FASTA format.
   -r <fregion>  CDS region file.
-  -o <fout>     Output filename. Optional.
+  -o <fout>     Output files basename. Optional.
   -v            Output variation sites only. Optional.
                 Default output all sites.
   -N            Base 'N' is not considered as a variation. Optional.
@@ -305,13 +312,15 @@ Note:
      See *regions.template* file for more details.
   3. Be sure to Double-Check CDS ranges first!
   4. Output characters:
-    "u"  UTR, 5' and 3'
-	"s"  Synonynous mutation in CDS region
-	"n"  Non-synonymous mutation in CDS region
-	"i"  Inter-gene region
-	"a"  Stable/unchanged sites.
+      "u"  UTR, 5' and 3'
+      "s"  Synonynous mutation in CDS region
+      "n"  Non-synonymous mutation in CDS region
+	    "i"  Inter-gene region
+	    "a"  Stable/unchanged sites.
   5. Works on single stranded virus only.
   6. Degenerate codon accepted.
+  7. If output file basename not provided, will generate one according to
+     input alignment filename.
 EOS
 
 }
@@ -336,6 +345,27 @@ sub out_filename {
         return;
     }
 }
+
+=pod
+  Name:     out_basename
+  Function: Generate output file basename according to given input filename
+  Usage:    out_filename($fin)
+  Args:     A string
+  Return:   A string
+=cut
+
+sub out_filename {
+    my ($fin)   = (@_);
+    my ($basename, $dir, $suffix)   = fileparse($fin, qr/\..*$/);
+
+    if ($basename) {
+        return $basename;
+    }
+    else {
+        return "";
+    }
+}
+
 
 =pod
 
