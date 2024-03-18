@@ -15,6 +15,7 @@
 =head1 VERSION
 
     0.0.1   2024-03-18
+    0.0.2   2024-03-18  Minor bug fix.
 
 =cut
 
@@ -41,6 +42,8 @@ Args:
 NOTE:
   - Input file type, `tsv` or `csv` would be determined by its file extension.
   - There have to be a header line.
+  - If this script could not work as expected, try to convert the text file
+    format by using `dos2unix` or else.
 EOS
 
 my ($fin, $col_name, $fout);
