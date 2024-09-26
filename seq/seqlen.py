@@ -17,6 +17,7 @@ VERSION
     
     0.0.1   2016-10-14
     0.0.2   2019-11-16  Now output only 1 line heading information
+    0.0.3   2024-09-26  Fix bugs for Python 3.11.
 
 '''
 
@@ -49,7 +50,10 @@ else:
 print("#SeqID\tLength")
 # print("====\t====")
 
-fh_in   = open(fin, "rU")
+# fh_in   = open(fin, "rU")
+# For Python 3.11 and later
+fh_in   = open(fin, "U")
+
 
 for seq_rec in SeqIO.parse(fh_in, fmt):
     print("%s\t%s" % (seq_rec.id, len(seq_rec)))
