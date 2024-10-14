@@ -52,7 +52,7 @@ print("#SeqID\tLength")
 
 # fh_in   = open(fin, "rU")
 # For Python 3.11 and later
-fh_in   = open(fin, "U")
+fh_in   = open(fin, "r")
 
 
 for seq_rec in SeqIO.parse(fh_in, fmt):
