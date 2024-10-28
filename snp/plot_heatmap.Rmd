@@ -1,0 +1,77 @@
+---
+title: "Plot SNP frequencies headmap"
+author: "zeroliu"
+date: "2024-10-20"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE)
+```
+
+This is an example Rmarkdown file to plot heatmap of SNP frequencies.
+
+The input SNP frequencies file is a `tsv` format file, _i.e._, columns/fields delimited by a "\t".
+
+Example of input file:
+
+```
+	P13L	D63G	R123A	G202R	P377K
+TypeA	0	1.0000	0.9230	0	0.2345
+TypeB	1.0000	1.0000	0	0.4583	0.8023
+TypeC	1.0000	0.5824	0.9872	1.0000	0.3345
+```
+
+SNP frequencies could be fetched from the output of the script `snp_freq.pl` in the last column `Freq`.
+
+Please note:
+
+- Replace `NA` in `Freq` column with `0`.
+
+Load necessary libraries:
+
+```{r}
+library(dplyr)
+library(pheatmap)
+library(readr)
+library(tidyr)
+```
+
+Working dir: `getwd()`.
+
+Then plot headmap:
+
+### Read file:
+
+```{r}
+fin = "input_freq.tsv"
+
+data <- read.table(fin, header = TRUE, row.names = 1, sep = "\t")
+```
+
+### Plotting heatmap
+
+Please change options to fit your requirements:
+
+- Modify `color` for different color or color gradients.
+- Midify `cellwidth` and `cellheight` for different square size, in `points`.
+
+```{r}
+p <- pheatmap(data,
+              cluster_rows = FALSE, 
+              cluster_cols = FALSE,
+              color = colorRampPalette(c("white", "purple4"))(100),
+              cellwidth = 12,
+              cellheight = 12)
+```
+
+### Output to PDF format file
+
+```{r}
+pdf("heatmap.pdf", paper = "a4")
+p
+dev.off()
+```
+
+# DONE
+
