@@ -4,6 +4,10 @@
 
 rm_seq_dup_id.pl - Remove sequence with duplicated IDs from a FASTA file.
 
+=head1 VERSION
+
+    0.0.1   2025-02-17
+
 =cut
 
 use 5.010;
