@@ -56,6 +56,9 @@
 --                        Store data from ftp://ftp.ncbi.nih.gov/genomes/INFLUENZA/genomeset.dat
 --                      New table 'rel_date':
 --                        Store source datebase release information.
+-- 3.40     2025-02-24  New field 'geo_location' and 'geo_country' in table 'virus'.
+--                      NOTE: NCBI no longer update 'genomeset.dat' since
+--                            2020-10-13.
 --
 -- }}} Comments
 
@@ -95,14 +98,13 @@ CREATE  TABLE virus (
     serovar TEXT NOT NULL DEFAULT '',
     serotype TEXT NOT NULL DEFAULT '',
     ecotype TEXT NOT NULL DEFAULT '',
-    country TEXT NOT NULL DEFAULT '',
+    country TEXT NOT NULL DEFAULT '',       -- Replaced by '/geo_loc_name'
     host TEXT NOT NULL DEFAULT '',
     lab_host TEXT NOT NULL DEFAULT '',
     spec_host TEXT NOT NULL DEFAULT '',
     isolate_src TEXT NOT NULL DEFAULT '',
     cell_line TEXT NOT NULL DEFAULT '',
     cell_type TEXT NOT NULL DEFAULT '',
---    collect_date TEXT NOT NULL DEFAULT '0001-01-01',    -- Default year
     collect_date TEXT NOT NULL DEFAULT '',
     virion INTEGRE NOT NULL DEFAULT FALSE,
     proviral INTEGRE NOT NULL DEFAULT FALSE,
@@ -110,9 +112,9 @@ CREATE  TABLE virus (
     tissue_type TEXT NOT NULL DEFAULT '',
     map TEXT NOT NULL DEFAULT '',
     note TEXT NOT NULL DEFAULT '',
---    taxon_id INTEGER NOT NULL DEFAULT 0 CHECK (taxon_id > 0),		-- Xref NCBI Taxonomy id
     taxon_id INTEGER NOT NULL DEFAULT 0, 
-    collected_by TEXT NOT NULL DEFAULT ''
+    collected_by TEXT NOT NULL DEFAULT '',
+    geo_loc_name TEXT NOT NULL DEFAULT ''   -- Replace '/country'
 );
 
 -- }}} virus

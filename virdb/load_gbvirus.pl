@@ -29,7 +29,7 @@
   1.01      2008-10-30  Minor modification.
   1.02      2008-10-31  Minor modification.
                         Almost completed.
-  1.11      2008-11-04  Correct fuction 'chgGBDate'.
+  1.11      2008-11-04  Correct function 'chgGBDate'.
   1.21      2008-11-05  New function 'update' & 'delete' records.
   1.30      2008-11-26  Modified script for new database diagram V1.10.
                         Correct insert 'reference.pmid' problem.
@@ -41,7 +41,7 @@
 						Parse 'source' tag '/PCR_primers' into table 'seq'.
 						parse 'source' tag '/collected_by' into table 'virus'.
   1.50	    2009-05-21	Correct parse CDS related spliced nucleotides sequences.
-						Correct insert reference SQL secript.
+						Correct insert reference SQL script.
   2.00		2009-06-26	Converted to PostgreSQL version.
   2.10      2009-07-16  Correct errors of insert reference records, where
                         - lack of a 'next' after chkRef()
@@ -56,7 +56,7 @@
                             '2005'      -> '2005-01-01##'
                             '2010-02'   -> '2010-02-01#'
   3.20      2018-03-12  Modified for updated database schema.
-                            Table 'sequence', two more fileds
+                            Table 'sequence', two more fields
                                 'mod_date'
                                 'version'
                             Table 'feature':
@@ -72,7 +72,10 @@
                         This means, 
                         one sequence has one related virus information
   3.23      2010-07-10  Update table 'rel_date'
-
+  3.30      2025-02-24  Table 'virus', field "geo_loc_name".
+                        NOTE: The qualifier '/country' has been replaced by
+                        '/geo_loc_name' since 2024-06.
+                        Fix some bugs.
 =cut
 # }}} POD
 
@@ -434,7 +437,7 @@ elsif ( ($cmd eq 'ins') or ($cmd eq 'upd') ) {
             warn "Error: Insert data failed!\n";
             # warn $DBI::errstr, "\n";
             # warn $dbh->errstr(), "\n";
-            # warn "Rollbacking ...\n";
+            # warn "Rollback ...\n";
 
             warn '-' x 60, "\n";
             warn $@, "\n";
@@ -1197,7 +1200,7 @@ sub insTableVir {
             my @values = $o_feat->get_tag_values($tag);
             $feat{'serotype'} = array2str( \@values, ' ');
         }
-        elsif ($tag eq 'country') {
+        elsif ($tag eq 'country') { # Replaced by 'geo_loc_name'
             my @values = $o_feat->get_tag_values($tag);
             $feat{'country'} = array2str( \@values, ' ');
         }
@@ -1291,7 +1294,12 @@ sub insTableVir {
 		}
 		elsif ($tag eq 'collected_by') {
             my @values = $o_feat->get_tag_values('collected_by');
-            $feat{'collected_by'} = array2str(\@values, ' ');		}
+            $feat{'collected_by'} = array2str(\@values, ' ');		
+        }
+        elsif ($tag eq 'geo_loc_name') { # Replace 'country' since 2024-06
+            my @values = $o_feat->get_tag_values('geo_loc_name');
+            $feat{'geo_loc_name'} = array2str(\@values, ' ');
+        }
         else {  # Display unmatched tags.
             my @values = $o_feat->get_tag_values($tag);
             my $val = array2str( \@values, ' ');
